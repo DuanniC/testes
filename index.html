@@ -8308,8 +8308,8 @@ let autocompleteLastAt = 0;
 
 // Autocomplete mais econômico: evita chamar API a cada letra/palavra
 const AUTOCOMPLETE_MIN_CHARS = 4;
-const AUTOCOMPLETE_DELAY_MS = 1000;
-const AUTOCOMPLETE_MIN_INTERVAL_MS = 1800;
+const AUTOCOMPLETE_DELAY_MS = 0;
+const AUTOCOMPLETE_MIN_INTERVAL_MS = 3500;
 
 function normalizeBookSearchText(value) {
   return String(value || '')
@@ -8341,13 +8341,18 @@ function setupAutocomplete() {
   input.addEventListener("input", () => {
     const q = input.value.trim();
     clearTimeout(autocompleteDebounce);
+    if (autocompleteAbort) { try { autocompleteAbort.abort(); } catch(e) {} }
+
+    // IMPORTANTE: não busca mais a cada palavra/letra.
+    // A busca agora é manual, pelo Enter, para evitar bloqueios "too many requests".
     if (q.length < AUTOCOMPLETE_MIN_CHARS) {
       results.classList.remove("open");
       results.innerHTML = "";
       return;
     }
-    // Espera a pessoa terminar de digitar. Isso evita o "too many requests".
-    autocompleteDebounce = setTimeout(() => searchTitles(q), AUTOCOMPLETE_DELAY_MS);
+
+    results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">pressione Enter para buscar este título</div>`;
+    results.classList.add("open");
   });
 
   input.addEventListener("keydown", (e) => {
@@ -8394,12 +8399,12 @@ async function searchTitles(q, force = false) {
   const sig = autocompleteAbort.signal;
 
   // Mostra loading
-  results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">buscando... pressione Enter para buscar na hora</div>`;
+  results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">buscando...</div>`;
   results.classList.add("open");
 
   try {
-    // Busca principal: Open Library.
-    // Google Books foi retirado do autocomplete porque dispara 429/too many requests com facilidade.
+    // Busca principal: Open Library, somente quando a pessoa aperta Enter.
+    // Google Books continua fora do autocomplete para evitar 429/too many requests.
     const oResult = await searchOpenLibrary(q, sig);
 
     // Deduplica por título+autor normalizado
@@ -8432,6 +8437,8 @@ async function searchTitles(q, force = false) {
   } catch (e) {
     if (e.name === 'AbortError') return;
     console.error(e);
+    results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">não consegui buscar agora. Tente digitar o título completo e apertar Enter novamente.</div>`;
+    results.classList.add("open");
   }
 }
 
@@ -8535,55 +8542,45 @@ async function searchGoogleBooks(q, signal) {
 
 async function searchOpenLibrary(q, signal) {
   const fields = "title,author_name,cover_i,number_of_pages_median,subject,isbn,language,edition_count";
-  
-  // Busca dupla: por título exato (title=) em português e geral
-  const urlPt  = `https://openlibrary.org/search.json?title=${encodeURIComponent(q)}&language=por&limit=10&fields=${fields}`;
-  const urlAll = `https://openlibrary.org/search.json?title=${encodeURIComponent(q)}&limit=12&fields=${fields}`;
-  
-  try {
-    const [ptResp, allResp] = await Promise.allSettled([
-      apiFetch(urlPt, { signal }),
-      apiFetch(urlAll, { signal }),
-    ]);
-    
-    let ptDocs = [];
-    let allDocs = [];
-    
-    if (ptResp.status === 'fulfilled' && ptResp.value.ok) {
-      const ptData = await ptResp.value.json();
-      ptDocs = (ptData.docs || []).filter(d => d.title);
-    }
-    if (allResp.status === 'fulfilled' && allResp.value.ok) {
-      const allData = await allResp.value.json();
-      allDocs = (allData.docs || []).filter(d => d.title);
-    }
-    
-    const qLower = q.toLowerCase();
+  const clean = normalizeBookSearchText(q);
 
-    // Merge: português primeiro, depois resto (dedup por título+autor)
+  // Corrige casos comuns de digitação, sem disparar várias consultas.
+  // Ex: "quartas" também tenta aproximar para "quarta" na mesma busca textual.
+  const variants = new Set([q.trim()]);
+  if (clean.endsWith('s') && clean.length > 5) variants.add(clean.slice(0, -1));
+
+  const queryText = Array.from(variants).join(' ');
+  const url = `https://openlibrary.org/search.json?title=${encodeURIComponent(queryText)}&limit=16&fields=${fields}`;
+
+  try {
+    const resp = await apiFetch(url, { signal });
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    const docs = (data.docs || []).filter(d => d.title);
+    const qLower = clean;
+
     const seen = new Set();
     const merged = [];
-    for (const doc of [...ptDocs, ...allDocs]) {
+    for (const doc of docs) {
       const authorFirst = (doc.author_name || [])[0] || '';
       const norm = (doc.title + '|' + authorFirst).toLowerCase().replace(/\s+/g, '');
       if (seen.has(norm)) continue;
       seen.add(norm);
-      
-      const titleLower = doc.title.toLowerCase();
 
-      // Descarta resultados que não têm nada a ver com a busca
+      // Mantém resultado só se o título tiver relação com a busca.
+      // Se a pessoa digitou quase completo, isso evita aparecer um monte de livro nada a ver.
       if (!isBookTitleRelevant(doc.title, q)) continue;
 
-      // Calcula score pra ordenação posterior
+      const titleNorm = normalizeBookSearchText(doc.title);
       let score = 0;
-      if (titleLower === qLower) score += 120;
-      else if (titleLower.startsWith(qLower)) score += 70;
-      else if (titleLower.includes(qLower)) score += 30;
-      if ((doc.language || []).includes('por')) score += 40;
-      if (doc.cover_i) score += 25;
-      if (doc.number_of_pages_median) score += 8;
+      if (titleNorm === qLower) score += 140;
+      else if (titleNorm.startsWith(qLower)) score += 90;
+      else if (titleNorm.includes(qLower)) score += 45;
+      if ((doc.language || []).includes('por')) score += 45;
+      if (doc.cover_i) score += 30;
+      if (doc.number_of_pages_median) score += 10;
       score += Math.min(15, doc.edition_count || 0);
-      
+
       merged.push({
         ...doc,
         author_name: doc.author_name || [],
@@ -8591,8 +8588,7 @@ async function searchOpenLibrary(q, signal) {
         _score: score,
       });
     }
-    
-    // Ordena por score (melhor primeiro)
+
     merged.sort((a, b) => b._score - a._score);
     return merged.slice(0, 12);
   } catch(e) {
@@ -8605,8 +8601,8 @@ function renderAutocomplete(items) {
   const results = document.getElementById("titleAutocomplete");
   if (!results) return;
   if (items.length === 0) {
-    results.innerHTML = "";
-    results.classList.remove("open");
+    results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">não achei esse título. Tente escrever o nome completo, ex: Quarta Asa</div>`;
+    results.classList.add("open");
     return;
   }
   
