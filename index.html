@@ -3093,6 +3093,32 @@ textarea,
   touch-action: manipulation;
 }
 
+
+  /* Botão de limpar campo Amazon */
+  .clear-amazon-btn {
+    position: absolute;
+    right: 120px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    padding: 4px 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+  }
+
+  #amazonUrl:not(:placeholder-shown) ~ .clear-amazon-btn {
+    opacity: 1;
+  }
+
+  .clear-amazon-btn:hover {
+    color: var(--rose-deep);
+  }
+
 </style>
 </head>
 <body>
@@ -3384,8 +3410,9 @@ create policy "acesso total genres" on genres
 
     <div class="amazon-divider" id="amazonSection">
       <div class="amazon-divider-line"><span>ou cole um link da Amazon</span></div>
-      <div class="amazon-input-wrap">
+      <div class="amazon-input-wrap" style="position: relative;">
         <input type="url" class="form-input" id="amazonUrl" placeholder="https://amazon.com.br/... ou https://a.co/d/..." autocomplete="off">
+        <button type="button" class="clear-amazon-btn" onclick="clearAmazonField()" title="Limpar">×</button>
         <button class="amazon-fetch-btn" onclick="fetchFromAmazon()" id="amazonFetchBtn">Buscar ✦</button>
       </div>
       <div class="amazon-status" id="amazonStatus"></div>
@@ -4699,70 +4726,6 @@ async function apiFetch(url, opts) {
 }
 
 
-function decodeAmazonText(value) {
-  const txt = document.createElement('textarea');
-  txt.innerHTML = String(value || '');
-  return txt.value;
-}
-
-function cleanAmazonImageUrl(url) {
-  let clean = decodeAmazonText(url || '').replace(/\\\//g, '/').trim();
-  if (!clean) return '';
-  if (clean.startsWith('//')) clean = 'https:' + clean;
-  if (!clean.match(/^https?:\/\//i)) return '';
-  // Remove variações de tamanho do nome do arquivo, mantendo a capa limpa.
-  clean = clean.replace(/\._[^.\/]+_\./, '.');
-  return clean.replace(/^http:/, 'https:');
-}
-
-function extractAmazonCoversFromHtml(html) {
-  const results = [];
-  const seen = new Set();
-  const add = (url, asin = '') => {
-    const clean = cleanAmazonImageUrl(url);
-    if (!clean || seen.has(clean)) return;
-    if (!/images[^/]*-amazon|ssl-images-amazon|m\.media-amazon/i.test(clean)) return;
-    seen.add(clean);
-    results.push({ url: clean, asin });
-  };
-
-  const blockRegex = /<div[^>]+data-asin=["']([A-Z0-9]{10})["'][\s\S]*?(?=<div[^>]+data-asin=["'][A-Z0-9]{10}["']|<\/body>)/gi;
-  let block;
-  while ((block = blockRegex.exec(html)) && results.length < 8) {
-    const asin = block[1];
-    const part = block[0];
-    const img = part.match(/<img[^>]+(?:data-old-hires|src|data-src)=["']([^"']+)["'][^>]*>/i);
-    if (img) add(img[1], asin);
-    const srcset = part.match(/(?:srcset|data-a-dynamic-image)=["']([^"']+)["']/i);
-    if (srcset) {
-      const firstUrl = decodeAmazonText(srcset[1]).match(/https?:\\?\/\\?\/[^"'\s,}]+/i);
-      if (firstUrl) add(firstUrl[0], asin);
-    }
-  }
-
-  // Fallback: pega imagens da página inteira caso o layout da Amazon mude.
-  const imgRegex = /<img[^>]+(?:data-old-hires|src|data-src)=["']([^"']+)["'][^>]*>/gi;
-  let img;
-  while ((img = imgRegex.exec(html)) && results.length < 8) add(img[1]);
-  return results;
-}
-
-async function searchAmazonCoversByTitle(title, author, limit = 6) {
-  const term = [title, author].filter(Boolean).join(' ');
-  if (!term.trim()) return [];
-  const searchUrl = `https://www.amazon.com.br/s?k=${encodeURIComponent(term)}&i=stripbooks`;
-  try {
-    const resp = await apiFetch(searchUrl, { headers: { 'Accept': 'text/html' } });
-    if (!resp.ok) return [];
-    const html = await resp.text();
-    return extractAmazonCoversFromHtml(html).slice(0, limit);
-  } catch(e) {
-    console.warn('[amazon] busca por título falhou:', e);
-    return [];
-  }
-}
-
-
 // ============ CAPAS ============
 // Busca de capas e páginas: Google Books (prioridade) + Open Library (fallback)
 
@@ -4806,19 +4769,7 @@ async function fetchBookMeta(title, author) {
     }, () => resolve(false));
   });
 
-  // 0) Amazon por título: simula o caminho manual de buscar a capa na Amazon e salvar a URL.
-  // Faz só uma busca por livro e grava cache, evitando repetir chamadas e reduzindo erro 429.
-  if (canWriteCover) {
-    try {
-      const amazonCovers = await searchAmazonCoversByTitle(title, author, 4);
-      for (const cover of amazonCovers) {
-        const ok = await saveValidatedCover(cover.url);
-        if (ok) break;
-      }
-    } catch(e) {}
-  }
-
-  // 1) Amazon por ISBN: usa ISBN encontrado nas APIs, mas testa a imagem Amazon antes.
+  // 1) Amazon primeiro: usa ISBN encontrado nas APIs, mas testa a imagem Amazon antes.
   if (canWriteCover || !hasPages) {
     try {
       const fields = "cover_i,number_of_pages_median,isbn,language,edition_count,title";
@@ -7797,39 +7748,45 @@ function normalizeForCompare(s) {
 // Usado pra descartar resultados de ISBN bagunçados onde a API retorna outro livro.
 // Estratégia: compara conjuntos de palavras significativas (≥3 letras, sem stopwords)
 // e exige overlap de pelo menos 1 palavra significativa OU match no autor.
-function titlesMatch(apiTitle, urlTitle, apiAuthors, urlAuthor) {
-  if (!urlTitle) return true; // sem referência, aceita
-  if (!apiTitle) return false;
-
-  const stop = new Set([
-    'de', 'do', 'da', 'dos', 'das', 'e', 'a', 'o', 'as', 'os', 'no', 'na',
-    'nos', 'nas', 'em', 'um', 'uma', 'para', 'por', 'com', 'sem', 'que',
-    'the', 'and', 'of', 'to', 'in', 'on', 'at', 'for', 'with', 'by',
-  ]);
-  const wordsOf = s => new Set(
-    normalizeForCompare(s).split(' ').filter(w => w.length >= 3 && !stop.has(w))
-  );
-
-  const apiWords = wordsOf(apiTitle);
-  const urlWords = wordsOf(urlTitle);
-
-  // Se o slug da URL é muito curto (1-2 palavras significativas), usa só 1 word match
-  // Senão, exige pelo menos uma palavra em comum.
-  let titleOverlap = 0;
-  urlWords.forEach(w => { if (apiWords.has(w)) titleOverlap++; });
-
-  if (titleOverlap >= 1) return true;
-
-  // Fallback: se autor bate (mesmo sobrenome), aceita mesmo com título diferente
-  // (pode ser edição diferente do mesmo livro, ou variação de título)
-  if (urlAuthor && apiAuthors?.length) {
-    const urlAuthorWords = wordsOf(urlAuthor);
-    const apiAuthorWords = wordsOf(apiAuthors.join(' '));
-    let authorOverlap = 0;
-    urlAuthorWords.forEach(w => { if (apiAuthorWords.has(w)) authorOverlap++; });
-    if (authorOverlap >= 1) return true;
+function titlesMatch(apiTitle, slugTitle, apiAuthors, slugAuthor, relaxed = false) {
+  if (!apiTitle || !slugTitle) return false;
+  
+  const normalize = str => str.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  const t1 = normalize(apiTitle);
+  const t2 = normalize(slugTitle);
+  
+  // Palavras significativas (ignora conectivos)
+  const stopwords = ['a', 'o', 'e', 'de', 'da', 'do', 'dos', 'das', 'em', 'no', 'na', 'the', 'of', 'and', 'in'];
+  const words1 = t1.split(' ').filter(w => w.length > 2 && !stopwords.includes(w));
+  const words2 = t2.split(' ').filter(w => w.length > 2 && !stopwords.includes(w));
+  
+  if (words1.length === 0 || words2.length === 0) return false;
+  
+  // Conta palavras em comum
+  const common = words1.filter(w => words2.includes(w)).length;
+  const minWords = Math.min(words1.length, words2.length);
+  const matchRatio = common / minWords;
+  
+  // No mobile ou modo relaxado, aceita 30% de match (vs 50% no desktop)
+  const threshold = relaxed ? 0.3 : 0.5;
+  
+  if (matchRatio >= threshold) return true;
+  
+  // Fallback: confere autor se disponível
+  if (apiAuthors?.length && slugAuthor) {
+    const a1 = normalize(apiAuthors[0]);
+    const a2 = normalize(slugAuthor);
+    const authorWords1 = a1.split(' ');
+    const authorWords2 = a2.split(' ');
+    const authorCommon = authorWords1.filter(w => authorWords2.includes(w)).length;
+    if (authorCommon > 0 && matchRatio >= 0.2) return true;
   }
-
+  
   return false;
 }
 
@@ -7898,7 +7855,7 @@ async function fetchFromAmazon() {
   // 1. Google Books por ISBN (só se ASIN parece ISBN-10: começa com dígito ou 'B' não)
   if (asin && !/^B/i.test(asin)) {
     promises.push(
-      apiFetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${asin}&maxResults=3`)
+      fetchWithRetry(`https://www.googleapis.com/books/v1/volumes?q=isbn:${asin}&maxResults=3`, 2, 8000)
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           const item = (data?.items || [])[0];
@@ -7909,7 +7866,7 @@ async function fetchFromAmazon() {
 
     // 2. Open Library por ISBN
     promises.push(
-      apiFetch(`https://openlibrary.org/isbn/${asin}.json`)
+      fetchWithRetry(`https://openlibrary.org/isbn/${asin}.json`, 2, 8000)
         .then(r => r.ok ? r.json() : null)
         .then(async data => {
           if (!data?.title) return null;
@@ -7939,7 +7896,7 @@ async function fetchFromAmazon() {
   if (titleFromSlug) {
     const q = encodeURIComponent(titleFromSlug);
     promises.push(
-      apiFetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=5&langRestrict=pt`)
+      fetchWithRetry(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=5&langRestrict=pt`, 2, 8000)
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           const item = (data?.items || [])[0];
@@ -7948,7 +7905,7 @@ async function fetchFromAmazon() {
         }).catch(() => null)
     );
     promises.push(
-      apiFetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=5`)
+      fetchWithRetry(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=5`, 2, 8000)
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           const item = (data?.items || [])[0];
@@ -7962,7 +7919,7 @@ async function fetchFromAmazon() {
   if (titleFromSlug) {
     const q = encodeURIComponent(titleFromSlug);
     promises.push(
-      apiFetch(`https://openlibrary.org/search.json?q=${q}&limit=3&fields=title,author_name,number_of_pages_median,cover_i,subject`)
+      fetchWithRetry(`https://openlibrary.org/search.json?q=${q}&limit=3&fields=title,author_name,number_of_pages_median,cover_i,subject`, 2, 8000)
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           const doc = (data?.docs || [])[0];
@@ -7992,10 +7949,18 @@ async function fetchFromAmazon() {
   // ocasionalmente retornam livros COMPLETAMENTE diferentes pra um ISBN
   // (registros bagunçados). Se o título da API tiver 0 palavras em comum
   // com o slug da URL, esse resultado é descartado.
+  // VALIDAÇÃO CRUZADA com o slug da URL (mais relaxada no mobile)
+  const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
   const filteredResults = results.map(r => {
     if (!r) return null;
     if (!titleFromSlug) return r; // sem slug pra comparar, aceita tudo
-    if (titlesMatch(r.title, titleFromSlug, r.authors, authorFromSlug)) return r;
+    
+    // No mobile, usa validação relaxada
+    const shouldRelax = isMobile;
+    if (titlesMatch(r.title, titleFromSlug, r.authors, authorFromSlug, shouldRelax)) {
+      console.log('✅ Resultado aceito:', r._source, '→', r.title);
+      return r;
+    }
     // Resultado não bate com a URL — descarta
     console.warn('Resultado da API descartado por não bater com a URL:',
       r._source, '→ "' + r.title + '" (autor: ' + (r.authors?.[0] || '') + ')',
@@ -8096,6 +8061,50 @@ function setFieldNoAutocomplete(id, value) {
 }
 
 // Faz scraping da página da Amazon via proxy CORS pra extrair páginas/gênero
+
+// Limpa campo Amazon e reseta estado
+function clearAmazonField() {
+  const urlInput = document.getElementById("amazonUrl");
+  const statusEl = document.getElementById("amazonStatus");
+  
+  // Limpa campo
+  urlInput.value = "";
+  
+  // Reseta status
+  statusEl.textContent = "";
+  statusEl.className = "amazon-status";
+  
+  // Foca de volta no campo
+  urlInput.focus();
+}
+
+// Fetch com retry para melhorar confiabilidade no mobile
+function fetchWithRetry(url, retries = 2, timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    
+    const attempt = (n) => {
+      fetch(url, { signal: controller.signal })
+        .then(response => {
+          clearTimeout(timeoutId);
+          resolve(response);
+        })
+        .catch(error => {
+          clearTimeout(timeoutId);
+          if (n === 1) {
+            reject(error);
+          } else {
+            console.log(`Retry ${retries - n + 2}/${retries + 1} para ${url}`);
+            setTimeout(() => attempt(n - 1), 1000);
+          }
+        });
+    };
+    
+    attempt(retries);
+  });
+}
+
 async function scrapeAmazonPage(url) {
   let html = '';
   for (const makeProxyUrl of CORS_PROXIES) {
@@ -8303,34 +8312,6 @@ async function addBook() {
 let autocompleteDebounce = null;
 let autocompleteAbort = null;
 let autocompleteCache = {};
-let autocompleteLastQuery = "";
-let autocompleteLastAt = 0;
-
-// Autocomplete mais econômico: evita chamar API a cada letra/palavra
-const AUTOCOMPLETE_MIN_CHARS = 4;
-const AUTOCOMPLETE_DELAY_MS = 0;
-const AUTOCOMPLETE_MIN_INTERVAL_MS = 3500;
-
-function normalizeBookSearchText(value) {
-  return String(value || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function isBookTitleRelevant(title, query) {
-  const t = normalizeBookSearchText(title);
-  const q = normalizeBookSearchText(query);
-  if (!t || !q) return false;
-  if (t === q || t.startsWith(q + ' ') || t.includes(' ' + q + ' ')) return true;
-  const qWords = q.split(' ').filter(w => w.length >= 3);
-  if (!qWords.length) return t.includes(q);
-  const hits = qWords.filter(w => t.includes(w)).length;
-  return hits >= Math.min(2, qWords.length);
-}
 
 function setupAutocomplete() {
   const input = document.getElementById("newTitle");
@@ -8341,27 +8322,12 @@ function setupAutocomplete() {
   input.addEventListener("input", () => {
     const q = input.value.trim();
     clearTimeout(autocompleteDebounce);
-    if (autocompleteAbort) { try { autocompleteAbort.abort(); } catch(e) {} }
-
-    // IMPORTANTE: não busca mais a cada palavra/letra.
-    // A busca agora é manual, pelo Enter, para evitar bloqueios "too many requests".
-    if (q.length < AUTOCOMPLETE_MIN_CHARS) {
+    if (q.length < 3) {
       results.classList.remove("open");
       results.innerHTML = "";
       return;
     }
-
-    results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">pressione Enter para buscar este título</div>`;
-    results.classList.add("open");
-  });
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      clearTimeout(autocompleteDebounce);
-      const q = input.value.trim();
-      if (q.length >= AUTOCOMPLETE_MIN_CHARS) searchTitles(q, true);
-    }
+    autocompleteDebounce = setTimeout(() => searchTitles(q), 350);
   });
   
   input.addEventListener("blur", () => {
@@ -8374,25 +8340,14 @@ function setupAutocomplete() {
   });
 }
 
-async function searchTitles(q, force = false) {
+async function searchTitles(q) {
   const results = document.getElementById("titleAutocomplete");
   if (!results) return;
 
-  const cacheKey = normalizeBookSearchText(q);
-  if (autocompleteCache[cacheKey]) {
-    renderAutocomplete(autocompleteCache[cacheKey]);
+  if (autocompleteCache[q]) {
+    renderAutocomplete(autocompleteCache[q]);
     return;
   }
-
-  const now = Date.now();
-  if (!force && cacheKey === autocompleteLastQuery) return;
-  if (!force && now - autocompleteLastAt < AUTOCOMPLETE_MIN_INTERVAL_MS) {
-    clearTimeout(autocompleteDebounce);
-    autocompleteDebounce = setTimeout(() => searchTitles(q), AUTOCOMPLETE_MIN_INTERVAL_MS);
-    return;
-  }
-  autocompleteLastQuery = cacheKey;
-  autocompleteLastAt = now;
 
   if (autocompleteAbort) autocompleteAbort.abort();
   autocompleteAbort = new AbortController();
@@ -8403,14 +8358,20 @@ async function searchTitles(q, force = false) {
   results.classList.add("open");
 
   try {
-    // Busca principal: Open Library, somente quando a pessoa aperta Enter.
-    // Google Books continua fora do autocomplete para evitar 429/too many requests.
-    const oResult = await searchOpenLibrary(q, sig);
+    // Busca paralela: Google Books + Open Library.
+    const [googleItems, olItems] = await Promise.allSettled([
+      searchGoogleBooks(q, sig),
+      searchOpenLibrary(q, sig),
+    ]);
 
+    const gResult  = googleItems.status === 'fulfilled' ? googleItems.value : [];
+    const oResult  = olItems.status     === 'fulfilled' ? olItems.value     : [];
+
+    // Mescla: Google primeiro, depois Open Library
     // Deduplica por título+autor normalizado
     const seen = new Set();
     const merged = [];
-    for (const item of [...oResult]) {
+    for (const item of [...gResult, ...oResult]) {
       const norm = (item.title + '|' + (item.author_name || []).join('')).toLowerCase().replace(/\s+/g, '');
       if (!seen.has(norm)) {
         seen.add(norm);
@@ -8432,13 +8393,11 @@ async function searchTitles(q, force = false) {
     
     const final = merged.slice(0, 18);
 
-    autocompleteCache[cacheKey] = final;
+    autocompleteCache[q] = final;
     renderAutocomplete(final);
   } catch (e) {
     if (e.name === 'AbortError') return;
     console.error(e);
-    results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">não consegui buscar agora. Tente digitar o título completo e apertar Enter novamente.</div>`;
-    results.classList.add("open");
   }
 }
 
@@ -8484,7 +8443,7 @@ async function searchGoogleBooks(q, signal) {
     const titleLower = (v.title || '').toLowerCase();
 
     // Descarta se o título não tem nenhuma relação com a busca
-    if (!isBookTitleRelevant(v.title, q)) continue;
+    if (!titleLower.includes(qLower) && !qLower.includes(titleLower.substring(0, 5))) continue;
     
     // Match exato de título (mais importante)
     if (titleLower === qLower) score += 100;
@@ -8542,45 +8501,55 @@ async function searchGoogleBooks(q, signal) {
 
 async function searchOpenLibrary(q, signal) {
   const fields = "title,author_name,cover_i,number_of_pages_median,subject,isbn,language,edition_count";
-  const clean = normalizeBookSearchText(q);
-
-  // Corrige casos comuns de digitação, sem disparar várias consultas.
-  // Ex: "quartas" também tenta aproximar para "quarta" na mesma busca textual.
-  const variants = new Set([q.trim()]);
-  if (clean.endsWith('s') && clean.length > 5) variants.add(clean.slice(0, -1));
-
-  const queryText = Array.from(variants).join(' ');
-  const url = `https://openlibrary.org/search.json?title=${encodeURIComponent(queryText)}&limit=16&fields=${fields}`;
-
+  
+  // Busca dupla: por título exato (title=) em português e geral
+  const urlPt  = `https://openlibrary.org/search.json?title=${encodeURIComponent(q)}&language=por&limit=10&fields=${fields}`;
+  const urlAll = `https://openlibrary.org/search.json?title=${encodeURIComponent(q)}&limit=12&fields=${fields}`;
+  
   try {
-    const resp = await apiFetch(url, { signal });
-    if (!resp.ok) return [];
-    const data = await resp.json();
-    const docs = (data.docs || []).filter(d => d.title);
-    const qLower = clean;
+    const [ptResp, allResp] = await Promise.allSettled([
+      apiFetch(urlPt, { signal }),
+      apiFetch(urlAll, { signal }),
+    ]);
+    
+    let ptDocs = [];
+    let allDocs = [];
+    
+    if (ptResp.status === 'fulfilled' && ptResp.value.ok) {
+      const ptData = await ptResp.value.json();
+      ptDocs = (ptData.docs || []).filter(d => d.title);
+    }
+    if (allResp.status === 'fulfilled' && allResp.value.ok) {
+      const allData = await allResp.value.json();
+      allDocs = (allData.docs || []).filter(d => d.title);
+    }
+    
+    const qLower = q.toLowerCase();
 
+    // Merge: português primeiro, depois resto (dedup por título+autor)
     const seen = new Set();
     const merged = [];
-    for (const doc of docs) {
+    for (const doc of [...ptDocs, ...allDocs]) {
       const authorFirst = (doc.author_name || [])[0] || '';
       const norm = (doc.title + '|' + authorFirst).toLowerCase().replace(/\s+/g, '');
       if (seen.has(norm)) continue;
       seen.add(norm);
+      
+      const titleLower = doc.title.toLowerCase();
 
-      // Mantém resultado só se o título tiver relação com a busca.
-      // Se a pessoa digitou quase completo, isso evita aparecer um monte de livro nada a ver.
-      if (!isBookTitleRelevant(doc.title, q)) continue;
+      // Descarta resultados que não têm nada a ver com a busca
+      if (!titleLower.includes(qLower) && !qLower.includes(titleLower.substring(0, 5))) continue;
 
-      const titleNorm = normalizeBookSearchText(doc.title);
+      // Calcula score pra ordenação posterior
       let score = 0;
-      if (titleNorm === qLower) score += 140;
-      else if (titleNorm.startsWith(qLower)) score += 90;
-      else if (titleNorm.includes(qLower)) score += 45;
-      if ((doc.language || []).includes('por')) score += 45;
-      if (doc.cover_i) score += 30;
-      if (doc.number_of_pages_median) score += 10;
+      if (titleLower === qLower) score += 120;
+      else if (titleLower.startsWith(qLower)) score += 70;
+      else if (titleLower.includes(qLower)) score += 30;
+      if ((doc.language || []).includes('por')) score += 40;
+      if (doc.cover_i) score += 25;
+      if (doc.number_of_pages_median) score += 8;
       score += Math.min(15, doc.edition_count || 0);
-
+      
       merged.push({
         ...doc,
         author_name: doc.author_name || [],
@@ -8588,7 +8557,8 @@ async function searchOpenLibrary(q, signal) {
         _score: score,
       });
     }
-
+    
+    // Ordena por score (melhor primeiro)
     merged.sort((a, b) => b._score - a._score);
     return merged.slice(0, 12);
   } catch(e) {
@@ -8601,8 +8571,8 @@ function renderAutocomplete(items) {
   const results = document.getElementById("titleAutocomplete");
   if (!results) return;
   if (items.length === 0) {
-    results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">não achei esse título. Tente escrever o nome completo, ex: Quarta Asa</div>`;
-    results.classList.add("open");
+    results.innerHTML = "";
+    results.classList.remove("open");
     return;
   }
   
@@ -9056,13 +9026,6 @@ async function openCoverPicker(e) {
     if (covers.length > 0) renderCoverPicker(covers);
   };
 
-  // 0) Busca direta na Amazon pelo título/autor, igual ao processo manual de copiar a imagem.
-  try {
-    const amazonDirect = await searchAmazonCoversByTitle(title, author, 8);
-    for (const c of amazonDirect) addCover(c.url, 'Amazon', { asin: c.asin });
-    showNow();
-  } catch(e) { console.warn('[picker] Amazon por título falhou:', e); }
-
   // 1) Coleta ISBN e mostra Amazon primeiro.
   try {
     const fields = "cover_i,language,title,isbn";
@@ -9076,20 +9039,17 @@ async function openCoverPicker(e) {
     }
   } catch(e) { console.warn('[picker] ISBN Open Library falhou:', e); }
 
-  // Só consulta Google para ISBN se a Amazon direta ainda não trouxe opções suficientes.
-  if (covers.length < 3) {
-    try {
-      const q = `intitle:${encodeURIComponent(title)}+inauthor:${encodeURIComponent(author)}`;
-      const resp = await apiFetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=5`);
-      if (resp.ok) {
-        const data = await resp.json();
-        (data.items || []).forEach(item => {
-          const info = item.volumeInfo || {};
-          (info.industryIdentifiers || []).forEach(id => addIsbn(id.identifier));
-        });
-      }
-    } catch(e) { console.warn('[picker] ISBN Google Books falhou:', e); }
-  }
+  try {
+    const q = `intitle:${encodeURIComponent(title)}+inauthor:${encodeURIComponent(author)}`;
+    const resp = await apiFetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=10`);
+    if (resp.ok) {
+      const data = await resp.json();
+      (data.items || []).forEach(item => {
+        const info = item.volumeInfo || {};
+        (info.industryIdentifiers || []).forEach(id => addIsbn(id.identifier));
+      });
+    }
+  } catch(e) { console.warn('[picker] ISBN Google Books falhou:', e); }
 
   for (const isbn of isbnCandidates.slice(0, 8)) {
     await addCoverValidated(`https://images-na.ssl-images-amazon.com/images/P/${isbn}.01.LZZZZZZZ.jpg`, 'Amazon');
@@ -9114,7 +9074,6 @@ async function openCoverPicker(e) {
   };
 
   const googleBooksPromise = (async () => {
-    if (covers.length >= 3) return;
     try {
       const q1 = `intitle:${encodeURIComponent(title)}+inauthor:${encodeURIComponent(author)}`;
       const r1 = await apiFetch(`https://www.googleapis.com/books/v1/volumes?q=${q1}&maxResults=10&langRestrict=pt`);
