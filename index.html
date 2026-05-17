@@ -2264,7 +2264,7 @@
     display: none;
   }
   
-  /* Mobile: autocomplete acima do campo em vez de abaixo */
+  /* Mobile: autocomplete no fundo com backdrop */
   @media (max-width: 768px) {
     .autocomplete-results {
       position: fixed;
@@ -2274,8 +2274,18 @@
       right: 0;
       margin: 0;
       border-radius: 20px 20px 0 0;
-      max-height: 50vh;
-      padding-bottom: env(safe-area-inset-bottom, 0);
+      max-height: 60vh;
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+      box-shadow: 0 -10px 40px rgba(42, 36, 32, 0.4);
+    }
+    
+    /* Backdrop atrás do autocomplete - fecha ao clicar */
+    .autocomplete-results.open::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: -1;
     }
   }
   
@@ -2292,22 +2302,6 @@
   
   .autocomplete-item:last-child { border-bottom: none; }
   .autocomplete-item:hover, .autocomplete-item.active { background: var(--cream-dark); }
-  
-  /* Overlay para fechar autocomplete no mobile */
-  .autocomplete-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.3);
-    z-index: 9999;
-    backdrop-filter: blur(2px);
-  }
-  
-  @media (max-width: 768px) {
-    .autocomplete-overlay.active {
-      display: block;
-    }
-  }
   
   .autocomplete-cover {
     width: 36px;
@@ -3424,7 +3418,6 @@ create policy "acesso total genres" on genres
       <div class="autocomplete-wrap">
         <input type="text" class="form-input" id="newTitle" placeholder="Ex: O Nome do Vento" autocomplete="off">
         <div class="autocomplete-results" id="titleAutocomplete"></div>
-        <div class="autocomplete-overlay" id="autocompleteOverlay" onclick="closeAutocomplete()"></div>
       </div>
     </div>
     <div class="form-group">
@@ -8347,20 +8340,15 @@ let autocompleteCache = {};
 
 function closeAutocomplete() {
   const results = document.getElementById("titleAutocomplete");
-  const overlay = document.getElementById("autocompleteOverlay");
   if (results) {
     results.classList.remove("open");
     results.innerHTML = "";
-  }
-  if (overlay) {
-    overlay.classList.remove("active");
   }
 }
 
 function setupAutocomplete() {
   const input = document.getElementById("newTitle");
   const results = document.getElementById("titleAutocomplete");
-  const overlay = document.getElementById("autocompleteOverlay");
   
   if (!input || input.dataset.autocomplete) return;
   input.dataset.autocomplete = "1";
@@ -8371,7 +8359,6 @@ function setupAutocomplete() {
     if (q.length < 3) {
       results.classList.remove("open");
       results.innerHTML = "";
-      if (overlay) overlay.classList.remove("active");
       return;
     }
     autocompleteDebounce = setTimeout(() => searchTitles(q), 350);
@@ -8381,19 +8368,25 @@ function setupAutocomplete() {
     // Delay pra click funcionar
     setTimeout(() => {
       results.classList.remove("open");
-      if (overlay) overlay.classList.remove("active");
     }, 200);
   });
   
   input.addEventListener("focus", () => {
     if (results.innerHTML) {
       results.classList.add("open");
-      // No mobile, mostra overlay
-      if (overlay && window.innerWidth <= 768) {
-        overlay.classList.add("active");
-      }
     }
   });
+  
+  // Mobile: fechar ao clicar no backdrop (fora do autocomplete)
+  if (window.innerWidth <= 768) {
+    results.addEventListener("click", (e) => {
+      // Se clicou no próprio results (backdrop), fecha
+      if (e.target === results) {
+        results.classList.remove("open");
+        input.blur();
+      }
+    });
+  }
 }
 
 async function searchTitles(q) {
@@ -8412,12 +8405,6 @@ async function searchTitles(q) {
   // Mostra loading
   results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">buscando...</div>`;
   results.classList.add("open");
-  
-  // Ativa overlay no mobile
-  const overlay = document.getElementById("autocompleteOverlay");
-  if (overlay && window.innerWidth <= 768) {
-    overlay.classList.add("active");
-  }
 
   try {
     // Busca paralela: Google Books + Open Library.
@@ -8681,12 +8668,6 @@ function renderAutocomplete(items) {
   results.innerHTML = html;
   results.classList.add("open");
   results._items = items;
-  
-  // Ativa overlay no mobile
-  const overlay = document.getElementById("autocompleteOverlay");
-  if (overlay && window.innerWidth <= 768) {
-    overlay.classList.add("active");
-  }
 }
 
 function selectAutocomplete(index) {
@@ -8727,12 +8708,6 @@ function selectAutocomplete(index) {
   saveState();
   
   results.classList.remove("open");
-  
-  // Fecha overlay
-  const overlay = document.getElementById("autocompleteOverlay");
-  if (overlay) {
-    overlay.classList.remove("active");
-  }
 }
 
 function guessGenreFromSubjects(subjects) {
