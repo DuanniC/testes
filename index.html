@@ -2259,9 +2259,24 @@
     max-height: 280px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    z-index: 100;
+    z-index: 10000;
     box-shadow: 0 10px 30px rgba(42, 36, 32, 0.2);
     display: none;
+  }
+  
+  /* Mobile: autocomplete acima do campo em vez de abaixo */
+  @media (max-width: 768px) {
+    .autocomplete-results {
+      position: fixed;
+      top: auto;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      margin: 0;
+      border-radius: 20px 20px 0 0;
+      max-height: 50vh;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
   }
   
   .autocomplete-results.open { display: block; }
@@ -2277,6 +2292,22 @@
   
   .autocomplete-item:last-child { border-bottom: none; }
   .autocomplete-item:hover, .autocomplete-item.active { background: var(--cream-dark); }
+  
+  /* Overlay para fechar autocomplete no mobile */
+  .autocomplete-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 9999;
+    backdrop-filter: blur(2px);
+  }
+  
+  @media (max-width: 768px) {
+    .autocomplete-overlay.active {
+      display: block;
+    }
+  }
   
   .autocomplete-cover {
     width: 36px;
@@ -3393,6 +3424,7 @@ create policy "acesso total genres" on genres
       <div class="autocomplete-wrap">
         <input type="text" class="form-input" id="newTitle" placeholder="Ex: O Nome do Vento" autocomplete="off">
         <div class="autocomplete-results" id="titleAutocomplete"></div>
+        <div class="autocomplete-overlay" id="autocompleteOverlay" onclick="closeAutocomplete()"></div>
       </div>
     </div>
     <div class="form-group">
@@ -8313,9 +8345,23 @@ let autocompleteDebounce = null;
 let autocompleteAbort = null;
 let autocompleteCache = {};
 
+function closeAutocomplete() {
+  const results = document.getElementById("titleAutocomplete");
+  const overlay = document.getElementById("autocompleteOverlay");
+  if (results) {
+    results.classList.remove("open");
+    results.innerHTML = "";
+  }
+  if (overlay) {
+    overlay.classList.remove("active");
+  }
+}
+
 function setupAutocomplete() {
   const input = document.getElementById("newTitle");
   const results = document.getElementById("titleAutocomplete");
+  const overlay = document.getElementById("autocompleteOverlay");
+  
   if (!input || input.dataset.autocomplete) return;
   input.dataset.autocomplete = "1";
   
@@ -8325,6 +8371,7 @@ function setupAutocomplete() {
     if (q.length < 3) {
       results.classList.remove("open");
       results.innerHTML = "";
+      if (overlay) overlay.classList.remove("active");
       return;
     }
     autocompleteDebounce = setTimeout(() => searchTitles(q), 350);
@@ -8332,11 +8379,20 @@ function setupAutocomplete() {
   
   input.addEventListener("blur", () => {
     // Delay pra click funcionar
-    setTimeout(() => results.classList.remove("open"), 200);
+    setTimeout(() => {
+      results.classList.remove("open");
+      if (overlay) overlay.classList.remove("active");
+    }, 200);
   });
   
   input.addEventListener("focus", () => {
-    if (results.innerHTML) results.classList.add("open");
+    if (results.innerHTML) {
+      results.classList.add("open");
+      // No mobile, mostra overlay
+      if (overlay && window.innerWidth <= 768) {
+        overlay.classList.add("active");
+      }
+    }
   });
 }
 
@@ -8356,6 +8412,12 @@ async function searchTitles(q) {
   // Mostra loading
   results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">buscando...</div>`;
   results.classList.add("open");
+  
+  // Ativa overlay no mobile
+  const overlay = document.getElementById("autocompleteOverlay");
+  if (overlay && window.innerWidth <= 768) {
+    overlay.classList.add("active");
+  }
 
   try {
     // Busca paralela: Google Books + Open Library.
@@ -8619,6 +8681,12 @@ function renderAutocomplete(items) {
   results.innerHTML = html;
   results.classList.add("open");
   results._items = items;
+  
+  // Ativa overlay no mobile
+  const overlay = document.getElementById("autocompleteOverlay");
+  if (overlay && window.innerWidth <= 768) {
+    overlay.classList.add("active");
+  }
 }
 
 function selectAutocomplete(index) {
@@ -8659,6 +8727,12 @@ function selectAutocomplete(index) {
   saveState();
   
   results.classList.remove("open");
+  
+  // Fecha overlay
+  const overlay = document.getElementById("autocompleteOverlay");
+  if (overlay) {
+    overlay.classList.remove("active");
+  }
 }
 
 function guessGenreFromSubjects(subjects) {
