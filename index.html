@@ -2259,34 +2259,9 @@
     max-height: 280px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    z-index: 10000;
+    z-index: 100;
     box-shadow: 0 10px 30px rgba(42, 36, 32, 0.2);
     display: none;
-  }
-  
-  /* Mobile: autocomplete no fundo com backdrop */
-  @media (max-width: 768px) {
-    .autocomplete-results {
-      position: fixed;
-      top: auto;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      margin: 0;
-      border-radius: 20px 20px 0 0;
-      max-height: 60vh;
-      padding-bottom: max(1rem, env(safe-area-inset-bottom));
-      box-shadow: 0 -10px 40px rgba(42, 36, 32, 0.4);
-    }
-    
-    /* Backdrop atrás do autocomplete - fecha ao clicar */
-    .autocomplete-results.open::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.4);
-      z-index: -1;
-    }
   }
   
   .autocomplete-results.open { display: block; }
@@ -3118,32 +3093,6 @@ textarea,
   touch-action: manipulation;
 }
 
-
-  /* Botão de limpar campo Amazon */
-  .clear-amazon-btn {
-    position: absolute;
-    right: 120px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: var(--ink-soft);
-    cursor: pointer;
-    padding: 4px 8px;
-    opacity: 0;
-    transition: opacity 0.2s;
-    z-index: 10;
-  }
-
-  #amazonUrl:not(:placeholder-shown) ~ .clear-amazon-btn {
-    opacity: 1;
-  }
-
-  .clear-amazon-btn:hover {
-    color: var(--rose-deep);
-  }
-
 </style>
 </head>
 <body>
@@ -3435,9 +3384,8 @@ create policy "acesso total genres" on genres
 
     <div class="amazon-divider" id="amazonSection">
       <div class="amazon-divider-line"><span>ou cole um link da Amazon</span></div>
-      <div class="amazon-input-wrap" style="position: relative;">
+      <div class="amazon-input-wrap">
         <input type="url" class="form-input" id="amazonUrl" placeholder="https://amazon.com.br/... ou https://a.co/d/..." autocomplete="off">
-        <button type="button" class="clear-amazon-btn" onclick="clearAmazonField()" title="Limpar">×</button>
         <button class="amazon-fetch-btn" onclick="fetchFromAmazon()" id="amazonFetchBtn">Buscar ✦</button>
       </div>
       <div class="amazon-status" id="amazonStatus"></div>
@@ -7773,45 +7721,39 @@ function normalizeForCompare(s) {
 // Usado pra descartar resultados de ISBN bagunçados onde a API retorna outro livro.
 // Estratégia: compara conjuntos de palavras significativas (≥3 letras, sem stopwords)
 // e exige overlap de pelo menos 1 palavra significativa OU match no autor.
-function titlesMatch(apiTitle, slugTitle, apiAuthors, slugAuthor, relaxed = false) {
-  if (!apiTitle || !slugTitle) return false;
-  
-  const normalize = str => str.toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/[^\w\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  
-  const t1 = normalize(apiTitle);
-  const t2 = normalize(slugTitle);
-  
-  // Palavras significativas (ignora conectivos)
-  const stopwords = ['a', 'o', 'e', 'de', 'da', 'do', 'dos', 'das', 'em', 'no', 'na', 'the', 'of', 'and', 'in'];
-  const words1 = t1.split(' ').filter(w => w.length > 2 && !stopwords.includes(w));
-  const words2 = t2.split(' ').filter(w => w.length > 2 && !stopwords.includes(w));
-  
-  if (words1.length === 0 || words2.length === 0) return false;
-  
-  // Conta palavras em comum
-  const common = words1.filter(w => words2.includes(w)).length;
-  const minWords = Math.min(words1.length, words2.length);
-  const matchRatio = common / minWords;
-  
-  // No mobile ou modo relaxado, aceita 30% de match (vs 50% no desktop)
-  const threshold = relaxed ? 0.3 : 0.5;
-  
-  if (matchRatio >= threshold) return true;
-  
-  // Fallback: confere autor se disponível
-  if (apiAuthors?.length && slugAuthor) {
-    const a1 = normalize(apiAuthors[0]);
-    const a2 = normalize(slugAuthor);
-    const authorWords1 = a1.split(' ');
-    const authorWords2 = a2.split(' ');
-    const authorCommon = authorWords1.filter(w => authorWords2.includes(w)).length;
-    if (authorCommon > 0 && matchRatio >= 0.2) return true;
+function titlesMatch(apiTitle, urlTitle, apiAuthors, urlAuthor) {
+  if (!urlTitle) return true; // sem referência, aceita
+  if (!apiTitle) return false;
+
+  const stop = new Set([
+    'de', 'do', 'da', 'dos', 'das', 'e', 'a', 'o', 'as', 'os', 'no', 'na',
+    'nos', 'nas', 'em', 'um', 'uma', 'para', 'por', 'com', 'sem', 'que',
+    'the', 'and', 'of', 'to', 'in', 'on', 'at', 'for', 'with', 'by',
+  ]);
+  const wordsOf = s => new Set(
+    normalizeForCompare(s).split(' ').filter(w => w.length >= 3 && !stop.has(w))
+  );
+
+  const apiWords = wordsOf(apiTitle);
+  const urlWords = wordsOf(urlTitle);
+
+  // Se o slug da URL é muito curto (1-2 palavras significativas), usa só 1 word match
+  // Senão, exige pelo menos uma palavra em comum.
+  let titleOverlap = 0;
+  urlWords.forEach(w => { if (apiWords.has(w)) titleOverlap++; });
+
+  if (titleOverlap >= 1) return true;
+
+  // Fallback: se autor bate (mesmo sobrenome), aceita mesmo com título diferente
+  // (pode ser edição diferente do mesmo livro, ou variação de título)
+  if (urlAuthor && apiAuthors?.length) {
+    const urlAuthorWords = wordsOf(urlAuthor);
+    const apiAuthorWords = wordsOf(apiAuthors.join(' '));
+    let authorOverlap = 0;
+    urlAuthorWords.forEach(w => { if (apiAuthorWords.has(w)) authorOverlap++; });
+    if (authorOverlap >= 1) return true;
   }
-  
+
   return false;
 }
 
@@ -7880,7 +7822,7 @@ async function fetchFromAmazon() {
   // 1. Google Books por ISBN (só se ASIN parece ISBN-10: começa com dígito ou 'B' não)
   if (asin && !/^B/i.test(asin)) {
     promises.push(
-      fetchWithRetry(`https://www.googleapis.com/books/v1/volumes?q=isbn:${asin}&maxResults=3`, 2, 8000)
+      apiFetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${asin}&maxResults=3`)
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           const item = (data?.items || [])[0];
@@ -7891,7 +7833,7 @@ async function fetchFromAmazon() {
 
     // 2. Open Library por ISBN
     promises.push(
-      fetchWithRetry(`https://openlibrary.org/isbn/${asin}.json`, 2, 8000)
+      apiFetch(`https://openlibrary.org/isbn/${asin}.json`)
         .then(r => r.ok ? r.json() : null)
         .then(async data => {
           if (!data?.title) return null;
@@ -7921,7 +7863,7 @@ async function fetchFromAmazon() {
   if (titleFromSlug) {
     const q = encodeURIComponent(titleFromSlug);
     promises.push(
-      fetchWithRetry(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=5&langRestrict=pt`, 2, 8000)
+      apiFetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=5&langRestrict=pt`)
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           const item = (data?.items || [])[0];
@@ -7930,7 +7872,7 @@ async function fetchFromAmazon() {
         }).catch(() => null)
     );
     promises.push(
-      fetchWithRetry(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=5`, 2, 8000)
+      apiFetch(`https://www.googleapis.com/books/v1/volumes?q=${q}&maxResults=5`)
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           const item = (data?.items || [])[0];
@@ -7944,7 +7886,7 @@ async function fetchFromAmazon() {
   if (titleFromSlug) {
     const q = encodeURIComponent(titleFromSlug);
     promises.push(
-      fetchWithRetry(`https://openlibrary.org/search.json?q=${q}&limit=3&fields=title,author_name,number_of_pages_median,cover_i,subject`, 2, 8000)
+      apiFetch(`https://openlibrary.org/search.json?q=${q}&limit=3&fields=title,author_name,number_of_pages_median,cover_i,subject`)
         .then(r => r.ok ? r.json() : null)
         .then(data => {
           const doc = (data?.docs || [])[0];
@@ -7974,18 +7916,10 @@ async function fetchFromAmazon() {
   // ocasionalmente retornam livros COMPLETAMENTE diferentes pra um ISBN
   // (registros bagunçados). Se o título da API tiver 0 palavras em comum
   // com o slug da URL, esse resultado é descartado.
-  // VALIDAÇÃO CRUZADA com o slug da URL (mais relaxada no mobile)
-  const isMobile = /Mobile|Android|iPhone|iPad/i.test(navigator.userAgent);
   const filteredResults = results.map(r => {
     if (!r) return null;
     if (!titleFromSlug) return r; // sem slug pra comparar, aceita tudo
-    
-    // No mobile, usa validação relaxada
-    const shouldRelax = isMobile;
-    if (titlesMatch(r.title, titleFromSlug, r.authors, authorFromSlug, shouldRelax)) {
-      console.log('✅ Resultado aceito:', r._source, '→', r.title);
-      return r;
-    }
+    if (titlesMatch(r.title, titleFromSlug, r.authors, authorFromSlug)) return r;
     // Resultado não bate com a URL — descarta
     console.warn('Resultado da API descartado por não bater com a URL:',
       r._source, '→ "' + r.title + '" (autor: ' + (r.authors?.[0] || '') + ')',
@@ -8086,50 +8020,6 @@ function setFieldNoAutocomplete(id, value) {
 }
 
 // Faz scraping da página da Amazon via proxy CORS pra extrair páginas/gênero
-
-// Limpa campo Amazon e reseta estado
-function clearAmazonField() {
-  const urlInput = document.getElementById("amazonUrl");
-  const statusEl = document.getElementById("amazonStatus");
-  
-  // Limpa campo
-  urlInput.value = "";
-  
-  // Reseta status
-  statusEl.textContent = "";
-  statusEl.className = "amazon-status";
-  
-  // Foca de volta no campo
-  urlInput.focus();
-}
-
-// Fetch com retry para melhorar confiabilidade no mobile
-function fetchWithRetry(url, retries = 2, timeout = 5000) {
-  return new Promise((resolve, reject) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-    
-    const attempt = (n) => {
-      fetch(url, { signal: controller.signal })
-        .then(response => {
-          clearTimeout(timeoutId);
-          resolve(response);
-        })
-        .catch(error => {
-          clearTimeout(timeoutId);
-          if (n === 1) {
-            reject(error);
-          } else {
-            console.log(`Retry ${retries - n + 2}/${retries + 1} para ${url}`);
-            setTimeout(() => attempt(n - 1), 1000);
-          }
-        });
-    };
-    
-    attempt(retries);
-  });
-}
-
 async function scrapeAmazonPage(url) {
   let html = '';
   for (const makeProxyUrl of CORS_PROXIES) {
@@ -8338,18 +8228,9 @@ let autocompleteDebounce = null;
 let autocompleteAbort = null;
 let autocompleteCache = {};
 
-function closeAutocomplete() {
-  const results = document.getElementById("titleAutocomplete");
-  if (results) {
-    results.classList.remove("open");
-    results.innerHTML = "";
-  }
-}
-
 function setupAutocomplete() {
   const input = document.getElementById("newTitle");
   const results = document.getElementById("titleAutocomplete");
-  
   if (!input || input.dataset.autocomplete) return;
   input.dataset.autocomplete = "1";
   
@@ -8366,27 +8247,12 @@ function setupAutocomplete() {
   
   input.addEventListener("blur", () => {
     // Delay pra click funcionar
-    setTimeout(() => {
-      results.classList.remove("open");
-    }, 200);
+    setTimeout(() => results.classList.remove("open"), 200);
   });
   
   input.addEventListener("focus", () => {
-    if (results.innerHTML) {
-      results.classList.add("open");
-    }
+    if (results.innerHTML) results.classList.add("open");
   });
-  
-  // Mobile: fechar ao clicar no backdrop (fora do autocomplete)
-  if (window.innerWidth <= 768) {
-    results.addEventListener("click", (e) => {
-      // Se clicou no próprio results (backdrop), fecha
-      if (e.target === results) {
-        results.classList.remove("open");
-        input.blur();
-      }
-    });
-  }
 }
 
 async function searchTitles(q) {
@@ -9355,6 +9221,698 @@ async function init() {
 }
 
 init();
+
+
+
+/* ==========================================================
+   BUSCA DE LIVROS V5 — mais fontes + ranking por relevância
+   Fontes sem chave: Google Books, Open Library, Mercado Livre,
+   Internet Archive, Gutendex e BrasilAPI ISBN quando digitar ISBN.
+   ========================================================== */
+(function(){
+  const STOPWORDS_BR = new Set(['o','a','os','as','um','uma','uns','umas','de','do','da','dos','das','e','em','no','na','nos','nas','por','para','com','the','of','and']);
+
+  function normText(s){
+    return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  function tokensOf(s){
+    return normText(s).split(/\s+/).filter(t => t && t.length >= 2 && !STOPWORDS_BR.has(t));
+  }
+  function relevanceScore(query, title, author){
+    const qn = normText(query), tn = normText(title), an = normText(author||'');
+    const qt = tokensOf(query), tt = tokensOf(title);
+    if (!qn || !tn || !qt.length) return 0;
+
+    let score = 0;
+    if (tn === qn) score += 1000;
+    if (tn.startsWith(qn)) score += 650;
+    if (tn.includes(qn)) score += 450;
+
+    let matched = 0;
+    for (const t of qt) {
+      if (tt.includes(t)) { matched++; score += 120; }
+      else if (tn.includes(t)) { matched++; score += 70; }
+    }
+    const ratio = matched / qt.length;
+    score += Math.round(ratio * 260);
+
+    // exige que a busca tenha relação real com o título
+    if (matched === 0) return 0;
+    if (qt.length >= 2 && ratio < 0.5 && !tn.includes(qn)) return 0;
+
+    // penaliza título muito distante quando a pessoa digitou algo específico
+    const extraWords = Math.max(0, tt.length - qt.length);
+    if (!tn.includes(qn)) score -= extraWords * 10;
+
+    // pequeno bônus se autor for digitado junto
+    for (const t of qt) if (an.includes(t)) score += 20;
+    return Math.max(0, score);
+  }
+  function cleanTitle(s){
+    return String(s||'')
+      .replace(/\s*\(.*?\)\s*/g,' ')
+      .replace(/\s*[-–—:]\s*(livro|vol\.?|volume|edi[cç][aã]o|s[ée]rie).*$/i,'')
+      .replace(/\s+/g,' ').trim();
+  }
+  function firstAuthor(v){ return (v && v.author_name && v.author_name[0]) || ''; }
+  function addItem(list, item, query, sourceBoost=0){
+    if (!item || !item.title) return;
+    item.title = cleanTitle(item.title);
+    item.author_name = item.author_name || [];
+    const score = relevanceScore(query, item.title, item.author_name.join(' '));
+    if (!score) return;
+    item._score = score + sourceBoost + (item.cover_url || item.cover_i || item.amz_cover ? 18 : 0) + (item.number_of_pages_median ? 8 : 0);
+    list.push(item);
+  }
+  function dedupeAndSort(items){
+    const seen = new Map();
+    for (const it of items){
+      const isbn = (it.isbn13 || it.isbn10 || (it.isbn||[])[0] || '').replace(/[^0-9X]/gi,'');
+      const key = isbn || normText(it.title + ' ' + firstAuthor(it));
+      const old = seen.get(key);
+      if (!old || (it._score||0) > (old._score||0)) seen.set(key, it);
+    }
+    return [...seen.values()].sort((a,b)=>(b._score||0)-(a._score||0)).slice(0,18);
+  }
+  async function fetchJsonSafe(url, signal){
+    try {
+      const r = await apiFetch(url, { signal });
+      if (!r.ok) return null;
+      return await r.json();
+    } catch(e){ if (e.name === 'AbortError') throw e; return null; }
+  }
+
+  window.searchTitles = async function(q){
+    const results = document.getElementById('titleAutocomplete');
+    if (!results) return;
+    const cacheKey = normText(q);
+    if (autocompleteCache[cacheKey]) { renderAutocomplete(autocompleteCache[cacheKey]); return; }
+    if (autocompleteAbort) autocompleteAbort.abort();
+    autocompleteAbort = new AbortController();
+    const sig = autocompleteAbort.signal;
+    results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">buscando nas APIs...</div>`;
+    results.classList.add('open');
+
+    try {
+      const calls = await Promise.allSettled([
+        searchGoogleBooksV5(q, sig),
+        searchOpenLibraryV5(q, sig),
+        searchMercadoLivreV5(q, sig),
+        searchInternetArchiveV5(q, sig),
+        searchGutendexV5(q, sig),
+        searchBrasilApiIsbnV5(q, sig)
+      ]);
+      const merged = dedupeAndSort(calls.flatMap(c => c.status === 'fulfilled' ? c.value : []));
+      autocompleteCache[cacheKey] = merged;
+      renderAutocomplete(merged);
+    } catch(e){
+      if (e.name === 'AbortError') return;
+      console.error(e);
+      results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">Não consegui buscar agora. Tente pelo ISBN ou preencha manualmente.</div>`;
+      results.classList.add('open');
+    }
+  };
+
+  window.searchGoogleBooksV5 = async function(q, signal){
+    const fields = 'fields=items(volumeInfo(title,authors,imageLinks,pageCount,categories,industryIdentifiers,language,publishedDate,publisher))';
+    const base = 'https://www.googleapis.com/books/v1/volumes';
+    const urls = [
+      `${base}?q=${encodeURIComponent('intitle:"'+q+'"')}&maxResults=20&printType=books&langRestrict=pt&country=BR&orderBy=relevance&${fields}`,
+      `${base}?q=${encodeURIComponent(q)}&maxResults=20&printType=books&langRestrict=pt&orderBy=relevance&${fields}`,
+      `${base}?q=${encodeURIComponent(q)}&maxResults=20&printType=books&country=BR&orderBy=relevance&${fields}`,
+      `${base}?q=${encodeURIComponent(q)}&maxResults=20&printType=books&orderBy=relevance&${fields}`
+    ];
+    const data = await Promise.allSettled(urls.map(u => fetchJsonSafe(u, signal)));
+    const list = [];
+    for (const d of data){
+      const items = d.status === 'fulfilled' && d.value ? (d.value.items||[]) : [];
+      for (const raw of items){
+        const v = raw.volumeInfo || {};
+        const ids = v.industryIdentifiers || [];
+        const isbn13 = (ids.find(x=>x.type==='ISBN_13')||{}).identifier || null;
+        const isbn10 = (ids.find(x=>x.type==='ISBN_10')||{}).identifier || null;
+        const cover = v.imageLinks ? (v.imageLinks.extraLarge || v.imageLinks.large || v.imageLinks.medium || v.imageLinks.thumbnail || '').replace('http://','https://').replace(/[?&]edge=curl/g,'').replace('zoom=1','zoom=0') : null;
+        addItem(list, {title:v.title, author_name:v.authors||[], number_of_pages_median:v.pageCount||null, subject:v.categories||[], isbn:ids.map(x=>x.identifier), isbn13, isbn10, cover_url:cover, cover_i:null, amz_cover:isbn13?`https://images-na.ssl-images-amazon.com/images/P/${isbn13}.01.LZZZZZZZ.jpg`:null, _source:'google'}, q, v.language==='pt'?30:0);
+      }
+    }
+    return list;
+  };
+
+  window.searchOpenLibraryV5 = async function(q, signal){
+    const fields = 'title,author_name,cover_i,number_of_pages_median,subject,isbn,language,edition_count';
+    const urls = [
+      `https://openlibrary.org/search.json?title=${encodeURIComponent(q)}&language=por&limit=25&fields=${fields}`,
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&language=por&limit=25&fields=${fields}`,
+      `https://openlibrary.org/search.json?title=${encodeURIComponent(q)}&limit=25&fields=${fields}`
+    ];
+    const data = await Promise.allSettled(urls.map(u => fetchJsonSafe(u, signal)));
+    const list = [];
+    for (const d of data){
+      const docs = d.status === 'fulfilled' && d.value ? (d.value.docs||[]) : [];
+      for (const doc of docs){
+        addItem(list, {...doc, author_name:doc.author_name||[], _source:'ol'}, q, (doc.language||[]).includes('por')?25:0);
+      }
+    }
+    return list;
+  };
+
+  window.searchMercadoLivreV5 = async function(q, signal){
+    const url = `https://api.mercadolibre.com/sites/MLB/search?category=MLB1196&q=${encodeURIComponent(q)}&limit=30`;
+    const data = await fetchJsonSafe(url, signal);
+    const list = [];
+    for (const p of (data && data.results || [])){
+      const title = (p.title||'').replace(/\b(livro|box|kit|capa comum|brochura|edi[cç][aã]o especial)\b/ig,' ').replace(/\s+/g,' ').trim();
+      addItem(list, {title, author_name:[], number_of_pages_median:null, subject:[], isbn:[], cover_url:p.thumbnail ? p.thumbnail.replace('-I.','-O.').replace('http://','https://') : null, cover_i:null, _source:'ml'}, q, 10);
+    }
+    return list;
+  };
+
+  window.searchInternetArchiveV5 = async function(q, signal){
+    const query = `title:(${q}) AND mediatype:texts`;
+    const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}&fl[]=title&fl[]=creator&fl[]=identifier&fl[]=language&rows=25&page=1&output=json`;
+    const data = await fetchJsonSafe(url, signal);
+    const list = [];
+    for (const d of (data && data.response && data.response.docs || [])){
+      const id = d.identifier;
+      addItem(list, {title:d.title, author_name:d.creator ? [Array.isArray(d.creator)?d.creator[0]:d.creator] : [], number_of_pages_median:null, subject:[], isbn:[], cover_url:id?`https://archive.org/services/img/${id}`:null, cover_i:null, _source:'ia'}, q, 0);
+    }
+    return list;
+  };
+
+  window.searchGutendexV5 = async function(q, signal){
+    const url = `https://gutendex.com/books?search=${encodeURIComponent(q)}`;
+    const data = await fetchJsonSafe(url, signal);
+    const list = [];
+    for (const b of (data && data.results || [])){
+      const img = b.formats && (b.formats['image/jpeg'] || b.formats['image/png']);
+      addItem(list, {title:b.title, author_name:(b.authors||[]).map(a=>a.name), number_of_pages_median:null, subject:b.subjects||[], isbn:[], cover_url:img||null, cover_i:null, _source:'gut'}, q, -5);
+    }
+    return list;
+  };
+
+  window.searchBrasilApiIsbnV5 = async function(q, signal){
+    const isbn = String(q||'').replace(/[^0-9X]/gi,'');
+    if (isbn.length !== 10 && isbn.length !== 13) return [];
+    const data = await fetchJsonSafe(`https://brasilapi.com.br/api/isbn/v1/${isbn}`, signal);
+    if (!data || !data.title) return [];
+    return [{title:data.title, author_name:data.authors||[], number_of_pages_median:data.page_count||null, subject:data.subjects||[], isbn:[isbn], isbn13:isbn.length===13?isbn:null, isbn10:isbn.length===10?isbn:null, cover_url:null, cover_i:null, _source:'isbn', _score:1500}];
+  };
+
+  window.renderAutocomplete = function(items){
+    const results = document.getElementById('titleAutocomplete');
+    if (!results) return;
+    if (!items || !items.length) {
+      results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">Nenhum resultado relevante. Tente digitar mais do título, o autor ou o ISBN.</div>`;
+      results.classList.add('open');
+      results._items = [];
+      return;
+    }
+    const badges = {google:'GB', ol:'OL', ml:'ML', ia:'IA', gut:'GT', isbn:'ISBN'};
+    let html = '';
+    items.forEach((item,i)=>{
+      const isbn = (item.isbn||[]).find(s=>String(s).length===13) || item.isbn13 || item.isbn10 || '';
+      const amz = item.amz_cover || (isbn ? `https://images-na.ssl-images-amazon.com/images/P/${isbn}.01.LZZZZZZZ.jpg` : '');
+      const ol = item.cover_i ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg` : '';
+      const primary = item.cover_url || amz || ol || '';
+      const cover = primary ? `<img class="autocomplete-cover" src="${primary}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<div class="autocomplete-cover"></div>`;
+      const author = (item.author_name||[]).slice(0,2).join(', ');
+      const pages = item.number_of_pages_median ? `${item.number_of_pages_median} pgs` : '';
+      const badge = badges[item._source] ? `<span style="font-size:9px;background:var(--ink);color:var(--cream);border-radius:3px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle;">${badges[item._source]}</span>` : '';
+      html += `<div class="autocomplete-item" data-index="${i}" onmousedown="selectAutocomplete(${i})">
+        ${cover}<div class="autocomplete-info"><div class="autocomplete-title">${escapeHtml(item.title)}${badge}</div><div class="autocomplete-author">${escapeHtml(author || 'Autor não informado')}</div>${pages ? `<div class="autocomplete-pages">${pages}</div>` : ''}</div>
+      </div>`;
+    });
+    results.innerHTML = html;
+    results.classList.add('open');
+    results._items = items;
+  };
+})();
+
+/* ==========================================================
+   BUSCA DE LIVROS V6 — PT-BR real + ranking rígido por título
+   Correções:
+   1) remove resultados estrangeiros do autocomplete comum
+   2) não força livro famoso/catálogo reserva se o título não combina
+   3) usa Mercado Livre sem travar em categoria, porque a categoria falhava
+   4) exige TODOS os termos importantes do título para buscas com 2+ palavras
+   ========================================================== */
+(function(){
+  const STOP = new Set(['o','a','os','as','um','uma','uns','umas','de','do','da','dos','das','e','em','no','na','nos','nas','para','por','com','ao','aos','à','as','the','of','and','livro','volume','vol']);
+  const BR_PUBLISHERS = ['planeta','intrinseca','intrínseca','record','companhia das letras','verus','galera','alt','rocco','suma','arqueiro','darkside','morro branco','valentina','novo conceito','seguinte','harpercollins brasil','pandorga','faro editorial','editora gutenberg','novo século','novo seculo','universo dos livros'];
+
+  function norm(s){
+    return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  function toks(s){
+    return norm(s).split(/\s+/).filter(t => t.length > 1 && !STOP.has(t));
+  }
+  function clean(s){
+    return String(s||'')
+      .replace(/\b(livro|book|box|kit|capa comum|brochura|edi[cç][aã]o especial|edi[cç][aã]o de colecionador)\b/ig,' ')
+      .replace(/\s*[-–—|/]\s*(livro|volume|vol\.?|s[ée]rie).*$/i,'')
+      .replace(/\s+/g,' ').trim();
+  }
+  function titleScore(query, title, author){
+    const qn = norm(query), tn = norm(title), an = norm(author||'');
+    const qt = toks(query), tt = toks(title);
+    if (!qn || !tn || !qt.length) return 0;
+
+    let matched = 0;
+    for (const t of qt) {
+      if (tt.includes(t) || tn.includes(t)) matched++;
+    }
+
+    // Regra mais importante: se digitou 2+ palavras, TODAS as palavras úteis precisam aparecer.
+    // Ex.: "diarios vampiro" nunca pode trazer Rebecca Yarros.
+    if (qt.length >= 2 && matched < qt.length) return 0;
+    if (qt.length === 1 && matched === 0) return 0;
+
+    let score = 0;
+    if (tn === qn) score += 2000;
+    else if (tn.startsWith(qn)) score += 1200;
+    else if (tn.includes(qn)) score += 850;
+    score += matched * 180;
+
+    // Penaliza título com palavras demais quando a busca é específica.
+    const extra = Math.max(0, tt.length - qt.length);
+    if (!tn.includes(qn)) score -= extra * 35;
+
+    // Se o autor também apareceu no texto digitado, sobe um pouco.
+    for (const t of qt) if (an.includes(t)) score += 40;
+    return Math.max(0, score);
+  }
+  function isPtBrEnough(item){
+    const source = item._source;
+    if (source === 'ml' || source === 'isbn') return true; // fonte brasileira/ISBN informado
+    const lang = item._language || item.language || [];
+    const langs = Array.isArray(lang) ? lang : [lang];
+    if (langs.some(l => String(l).toLowerCase().startsWith('pt') || String(l).toLowerCase()==='por')) return true;
+    const pub = norm(item._publisher || item.publisher || '');
+    if (BR_PUBLISHERS.some(p => pub.includes(norm(p)))) return true;
+    return false;
+  }
+  function push(list, raw, query, boost){
+    if (!raw || !raw.title) return;
+    const item = {...raw, title: clean(raw.title), author_name: raw.author_name || []};
+    const score = titleScore(query, item.title, item.author_name.join(' '));
+    if (!score) return;
+    if (!isPtBrEnough(item)) return;
+    item._score = score + (boost||0) + (item.cover_url || item.cover_i || item.amz_cover ? 20 : 0) + (item.number_of_pages_median ? 10 : 0);
+    list.push(item);
+  }
+  function dedupe(items){
+    const map = new Map();
+    for (const it of items){
+      const isbn = String(it.isbn13 || it.isbn10 || (it.isbn||[])[0] || '').replace(/[^0-9X]/gi,'');
+      const author = (it.author_name||[])[0] || '';
+      const key = isbn || norm(it.title + ' ' + author);
+      const old = map.get(key);
+      if (!old || (it._score||0) > (old._score||0)) map.set(key, it);
+    }
+    return [...map.values()].sort((a,b)=>(b._score||0)-(a._score||0)).slice(0,16);
+  }
+  async function json(url, signal){
+    try { const r = await apiFetch(url, {signal}); return r.ok ? await r.json() : null; }
+    catch(e){ if (e.name === 'AbortError') throw e; return null; }
+  }
+  function googleQByTitle(q){
+    const ts = toks(q);
+    return ts.map(t => 'intitle:' + t).join('+');
+  }
+
+  async function searchGooglePtBr(q, signal){
+    const fields = 'fields=items(volumeInfo(title,authors,imageLinks,pageCount,categories,industryIdentifiers,language,publishedDate,publisher))';
+    const base = 'https://www.googleapis.com/books/v1/volumes';
+    const titleQ = googleQByTitle(q) || q;
+    const urls = [
+      `${base}?q=${encodeURIComponent(titleQ)}&maxResults=30&printType=books&langRestrict=pt&country=BR&orderBy=relevance&${fields}`,
+      `${base}?q=${encodeURIComponent(q)}&maxResults=30&printType=books&langRestrict=pt&country=BR&orderBy=relevance&${fields}`,
+      `${base}?q=${encodeURIComponent(q+' livro')}&maxResults=30&printType=books&langRestrict=pt&orderBy=relevance&${fields}`
+    ];
+    const all = await Promise.allSettled(urls.map(u => json(u, signal)));
+    const list = [];
+    for (const res of all){
+      for (const raw of (res.status==='fulfilled' && res.value ? (res.value.items||[]) : [])){
+        const v = raw.volumeInfo || {};
+        const ids = v.industryIdentifiers || [];
+        const isbn13 = (ids.find(x=>x.type==='ISBN_13')||{}).identifier || null;
+        const isbn10 = (ids.find(x=>x.type==='ISBN_10')||{}).identifier || null;
+        const cover = v.imageLinks ? (v.imageLinks.extraLarge || v.imageLinks.large || v.imageLinks.medium || v.imageLinks.thumbnail || '').replace('http://','https://').replace(/[?&]edge=curl/g,'').replace('zoom=1','zoom=0') : null;
+        push(list, {title:v.title, author_name:v.authors||[], number_of_pages_median:v.pageCount||null, subject:v.categories||[], isbn:ids.map(x=>x.identifier), isbn13, isbn10, cover_url:cover, amz_cover:isbn13?`https://images-na.ssl-images-amazon.com/images/P/${isbn13}.01.LZZZZZZZ.jpg`:null, cover_i:null, _source:'google', _language:v.language, _publisher:v.publisher}, q, 45);
+      }
+    }
+    return list;
+  }
+
+  async function searchOpenLibraryPor(q, signal){
+    const fields = 'title,author_name,cover_i,number_of_pages_median,subject,isbn,language,edition_count,publisher';
+    const urls = [
+      `https://openlibrary.org/search.json?title=${encodeURIComponent(q)}&language=por&limit=40&fields=${fields}`,
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&language=por&limit=40&fields=${fields}`
+    ];
+    const all = await Promise.allSettled(urls.map(u => json(u, signal)));
+    const list = [];
+    for (const res of all){
+      for (const d of (res.status==='fulfilled' && res.value ? (res.value.docs||[]) : [])){
+        push(list, {...d, author_name:d.author_name||[], _source:'ol', _language:d.language||[], _publisher:(d.publisher||[]).join(' ')}, q, 25);
+      }
+    }
+    return list;
+  }
+
+  async function searchMercadoLivreBr(q, signal){
+    const urls = [
+      `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent('livro '+q)}&limit=50`,
+      `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(q)}&limit=50`,
+      `https://api.mercadolibre.com/sites/MLB/search?category=MLB1196&q=${encodeURIComponent(q)}&limit=50`
+    ];
+    const all = await Promise.allSettled(urls.map(u => json(u, signal)));
+    const list = [];
+    for (const res of all){
+      for (const p of (res.status==='fulfilled' && res.value ? (res.value.results||[]) : [])){
+        let title = clean(p.title || '');
+        // Tenta retirar ruídos comuns de anúncio sem destruir o título.
+        title = title.replace(/\b(portugu[eê]s|brasil|novo|lacrado|pronta entrega)\b/ig,' ').replace(/\s+/g,' ').trim();
+        const img = p.thumbnail ? p.thumbnail.replace('-I.','-O.').replace('http://','https://') : null;
+        push(list, {title, author_name:[], number_of_pages_median:null, subject:[], isbn:[], cover_url:img, cover_i:null, _source:'ml'}, q, 35);
+      }
+    }
+    return list;
+  }
+
+  async function searchBrasilApiIsbn(q, signal){
+    const isbn = String(q||'').replace(/[^0-9X]/gi,'');
+    if (isbn.length !== 10 && isbn.length !== 13) return [];
+    const d = await json(`https://brasilapi.com.br/api/isbn/v1/${isbn}`, signal);
+    if (!d || !d.title) return [];
+    return [{title:d.title, author_name:d.authors||[], number_of_pages_median:d.page_count||null, subject:d.subjects||[], isbn:[isbn], isbn13:isbn.length===13?isbn:null, isbn10:isbn.length===10?isbn:null, cover_url:null, cover_i:null, _source:'isbn', _score:3000}];
+  }
+
+  window.searchTitles = async function(q){
+    const results = document.getElementById('titleAutocomplete');
+    if (!results) return;
+    const cacheKey = 'v6|' + norm(q);
+    if (autocompleteCache[cacheKey]) { renderAutocomplete(autocompleteCache[cacheKey]); return; }
+    if (autocompleteAbort) autocompleteAbort.abort();
+    autocompleteAbort = new AbortController();
+    const sig = autocompleteAbort.signal;
+
+    results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">buscando em fontes PT-BR...</div>`;
+    results.classList.add('open');
+
+    try {
+      const calls = await Promise.allSettled([
+        searchGooglePtBr(q, sig),
+        searchOpenLibraryPor(q, sig),
+        searchMercadoLivreBr(q, sig),
+        searchBrasilApiIsbn(q, sig)
+      ]);
+      const items = dedupe(calls.flatMap(c => c.status === 'fulfilled' ? c.value : []));
+      autocompleteCache[cacheKey] = items;
+      renderAutocomplete(items);
+      console.info('[Minha Estante] busca v6', q, items);
+    } catch(e){
+      if (e.name === 'AbortError') return;
+      console.error('[Minha Estante] erro na busca v6', e);
+      results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">Não consegui buscar agora. Tente título + autor ou ISBN.</div>`;
+      results.classList.add('open');
+    }
+  };
+
+  window.renderAutocomplete = function(items){
+    const results = document.getElementById('titleAutocomplete');
+    if (!results) return;
+    if (!items || !items.length) {
+      results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft); line-height:1.35;">Nenhum resultado PT-BR relevante. Tente escrever o título completo, título + autor ou ISBN.</div>`;
+      results.classList.add('open');
+      results._items = [];
+      return;
+    }
+    const badges = {google:'GB', ol:'OL', ml:'ML', isbn:'ISBN'};
+    let html = '';
+    items.forEach((item,i)=>{
+      const isbn = (item.isbn||[]).find(s=>String(s).replace(/[^0-9X]/gi,'').length===13) || item.isbn13 || item.isbn10 || '';
+      const amz = item.amz_cover || (isbn ? `https://images-na.ssl-images-amazon.com/images/P/${isbn}.01.LZZZZZZZ.jpg` : '');
+      const ol = item.cover_i ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg` : '';
+      const primary = item.cover_url || amz || ol || '';
+      const cover = primary ? `<img class="autocomplete-cover" src="${primary}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<div class="autocomplete-cover"></div>`;
+      const author = (item.author_name||[]).slice(0,2).join(', ');
+      const pages = item.number_of_pages_median ? `${item.number_of_pages_median} pgs` : '';
+      const badge = badges[item._source] ? `<span style="font-size:9px;background:var(--ink);color:var(--cream);border-radius:3px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle;">${badges[item._source]}</span>` : '';
+      html += `<div class="autocomplete-item" data-index="${i}" onmousedown="selectAutocomplete(${i})">${cover}<div class="autocomplete-info"><div class="autocomplete-title">${escapeHtml(item.title)}${badge}</div><div class="autocomplete-author">${escapeHtml(author || 'Autor não informado')}</div>${pages ? `<div class="autocomplete-pages">${pages}</div>` : ''}</div></div>`;
+    });
+    results.innerHTML = html;
+    results.classList.add('open');
+    results._items = items;
+  };
+})();
+
+
+/* ==========================================================
+   BUSCA DE LIVROS V7 — correção real do ranking
+   O erro anterior: tokens do autor estavam sendo tratados como
+   se precisassem aparecer no título. Ex.: "Quarta Asa Rebecca"
+   reprovava "Quarta Asa" mesmo com autora Rebecca Yarros.
+   Esta versão separa pontuação de título e autor, filtra PT-BR,
+   remove APIs que trazem idiomas aleatórios e usa catálogo BR
+   somente como reserva quando combina de verdade.
+   ========================================================== */
+(function(){
+  const STOP = new Set(['o','a','os','as','um','uma','uns','umas','de','do','da','dos','das','e','em','no','na','nos','nas','por','para','com','livro','livros','volume','vol','serie','série','edicao','edição']);
+  const BR_PUBLISHERS_V7 = ['Galera','Galera Record','Record','Seguinte','Intrínseca','Rocco','Arqueiro','Suma','Verus','Alt','Paralela','Companhia das Letras','DarkSide','Universo dos Livros','Novo Conceito','Bertrand Brasil','Faro Editorial','Planeta','HarperCollins Brasil','VR Editora','Aleph','Morocco'];
+  const BR_CATALOG_V7 = [
+    {title:'Quarta Asa', author_name:['Rebecca Yarros'], number_of_pages_median:528, isbn:['9786559811390'], isbn13:'9786559811390', _source:'cat'},
+    {title:'Chama de Ferro', author_name:['Rebecca Yarros'], number_of_pages_median:672, isbn:['9786559812038'], isbn13:'9786559812038', _source:'cat'},
+    {title:'Tempestade de Ônix', author_name:['Rebecca Yarros'], number_of_pages_median:544, isbn:['9786559813844'], isbn13:'9786559813844', _source:'cat'},
+    {title:'O Ceifador', author_name:['Neal Shusterman'], number_of_pages_median:448, isbn:['9788555340355'], isbn13:'9788555340355', _source:'cat'},
+    {title:'A Nuvem', author_name:['Neal Shusterman'], number_of_pages_median:480, isbn:['9788555340768'], isbn13:'9788555340768', _source:'cat'},
+    {title:'O Timbre', author_name:['Neal Shusterman'], number_of_pages_median:560, isbn:['9788555341123'], isbn13:'9788555341123', _source:'cat'},
+    {title:'Diários do Vampiro: O Despertar', author_name:['L. J. Smith'], number_of_pages_median:240, isbn:['9788501087303'], isbn13:'9788501087303', _source:'cat'},
+    {title:'Diários do Vampiro: O Confronto', author_name:['L. J. Smith'], number_of_pages_median:224, isbn:['9788501087310'], isbn13:'9788501087310', _source:'cat'},
+    {title:'Diários do Vampiro: A Fúria', author_name:['L. J. Smith'], number_of_pages_median:272, isbn:['9788501087327'], isbn13:'9788501087327', _source:'cat'}
+  ];
+
+  function normV7(s){
+    return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  function toksV7(s){
+    return normV7(s).split(/\s+/).filter(t => t.length >= 2 && !STOP.has(t));
+  }
+  function cleanV7(s){
+    return String(s||'')
+      .replace(/\s*\([^)]*\)\s*/g,' ')
+      .replace(/\b(livro|box|kit|capa comum|brochura|e-?book|kindle|novo|lacrado|pronta entrega|portugu[eê]s|brasil)\b/ig,' ')
+      .replace(/\s+/g,' ').trim();
+  }
+  function titleAuthorScoreV7(query, title, author){
+    const qn = normV7(query), tn = normV7(title), an = normV7(author||'');
+    const qt = toksV7(query), tt = toksV7(title), at = toksV7(author||'');
+    if (!qt.length || !tn) return 0;
+
+    let titleHits = 0, authorHits = 0, score = 0;
+    for (const t of qt){
+      if (tt.includes(t) || tn.includes(t)) { titleHits++; score += 220; }
+      else if (at.includes(t) || an.includes(t)) { authorHits++; score += 95; }
+    }
+
+    const meaningfulTitleTokens = qt.filter(t => !an.includes(t));
+    const needed = Math.min(tt.length || 1, meaningfulTitleTokens.length || qt.length);
+
+    // Precisa ter pelo menos 1 palavra no título e, se tiver 2+ palavras de título,
+    // bater a maior parte delas. Autor ajuda, mas não substitui título.
+    if (titleHits === 0) return 0;
+    if ((meaningfulTitleTokens.length >= 2 || tt.length >= 2) && titleHits < Math.min(2, needed)) return 0;
+
+    if (tn === qn) score += 1800;
+    else if (tn.startsWith(qn)) score += 1200;
+    else if (tn.includes(qn)) score += 900;
+
+    // Frase do título dentro da busca: "quarta asa rebecca" deve aceitar "quarta asa".
+    if (qn.includes(tn) && tt.length >= 2) score += 800;
+
+    // Busca parcial boa: "o ceifador" deve priorizar "O Ceifador", mas ainda mostrar subtítulos relacionados.
+    const titleCoverage = titleHits / Math.max(1, tt.length);
+    const queryCoverage = (titleHits + authorHits) / qt.length;
+    score += Math.round(titleCoverage * 450 + queryCoverage * 260);
+
+    const extra = Math.max(0, tt.length - titleHits);
+    score -= extra * 28;
+    return Math.max(0, score);
+  }
+  function looksPtBrV7(item){
+    if (item._source === 'ml' || item._source === 'isbn' || item._source === 'cat') return true;
+    const langs = Array.isArray(item._language || item.language) ? (item._language || item.language) : [item._language || item.language].filter(Boolean);
+    if (langs.some(l => ['pt','pt-br','por','portuguese'].includes(String(l).toLowerCase()))) return true;
+    const pub = normV7(item._publisher || item.publisher || '');
+    if (BR_PUBLISHERS_V7.some(p => pub.includes(normV7(p)))) return true;
+    return false;
+  }
+  function addV7(list, raw, query, boost){
+    if (!raw || !raw.title) return;
+    const item = {...raw};
+    item.title = cleanV7(item.title);
+    item.author_name = item.author_name || [];
+    const author = item.author_name.join(' ');
+    const sc = titleAuthorScoreV7(query, item.title, author);
+    if (!sc) return;
+    if (!looksPtBrV7(item)) return;
+    item._score = sc + (boost||0) + (item.cover_url || item.cover_i || item.amz_cover ? 25 : 0) + (item.number_of_pages_median ? 12 : 0);
+    list.push(item);
+  }
+  function dedupeV7(items){
+    const map = new Map();
+    for (const it of items){
+      const isbn = String(it.isbn13 || it.isbn10 || (it.isbn||[]).find(x=>String(x).replace(/[^0-9X]/gi,'').length>=10) || '').replace(/[^0-9X]/gi,'');
+      const key = isbn || normV7(it.title + ' ' + ((it.author_name||[])[0]||''));
+      const old = map.get(key);
+      if (!old || (it._score||0) > (old._score||0)) map.set(key, it);
+    }
+    return [...map.values()].sort((a,b)=>(b._score||0)-(a._score||0)).slice(0,18);
+  }
+  async function jsonV7(url, signal){
+    try {
+      const r = await apiFetch(url, {signal});
+      if (!r.ok) return null;
+      return await r.json();
+    } catch(e){ if (e.name === 'AbortError') throw e; return null; }
+  }
+  function googleTitleQueryV7(q){
+    const ts = toksV7(q).slice(0,5);
+    return ts.length ? ts.map(t => `intitle:${t}`).join(' ') : q;
+  }
+
+  async function googleV7(q, signal){
+    const base = 'https://www.googleapis.com/books/v1/volumes';
+    const fields = 'fields=items(volumeInfo(title,authors,imageLinks,pageCount,categories,industryIdentifiers,language,publishedDate,publisher))';
+    const quoted = '"' + q.replace(/"/g,'').trim() + '"';
+    const urls = [
+      `${base}?q=${encodeURIComponent(googleTitleQueryV7(q))}&maxResults=40&printType=books&langRestrict=pt&country=BR&orderBy=relevance&${fields}`,
+      `${base}?q=${encodeURIComponent(quoted)}&maxResults=40&printType=books&langRestrict=pt&country=BR&orderBy=relevance&${fields}`,
+      `${base}?q=${encodeURIComponent(q)}&maxResults=40&printType=books&langRestrict=pt&country=BR&orderBy=relevance&${fields}`
+    ];
+    const all = await Promise.allSettled(urls.map(u => jsonV7(u, signal)));
+    const list = [];
+    for (const res of all){
+      for (const raw of (res.status==='fulfilled' && res.value ? (res.value.items||[]) : [])){
+        const v = raw.volumeInfo || {};
+        const ids = v.industryIdentifiers || [];
+        const isbn13 = (ids.find(x=>x.type==='ISBN_13')||{}).identifier || null;
+        const isbn10 = (ids.find(x=>x.type==='ISBN_10')||{}).identifier || null;
+        const cover = v.imageLinks ? (v.imageLinks.extraLarge || v.imageLinks.large || v.imageLinks.medium || v.imageLinks.thumbnail || '').replace('http://','https://').replace(/[?&]edge=curl/g,'').replace('zoom=1','zoom=0') : null;
+        addV7(list, {title:v.title, author_name:v.authors||[], number_of_pages_median:v.pageCount||null, subject:v.categories||[], isbn:ids.map(x=>x.identifier), isbn13, isbn10, cover_url:cover, cover_i:null, amz_cover:isbn13?`https://images-na.ssl-images-amazon.com/images/P/${isbn13}.01.LZZZZZZZ.jpg`:null, _source:'google', _language:v.language, _publisher:v.publisher}, q, 60);
+      }
+    }
+    return list;
+  }
+
+  async function openLibraryV7(q, signal){
+    const fields = 'title,author_name,cover_i,number_of_pages_median,subject,isbn,language,edition_count,publisher';
+    const urls = [
+      `https://openlibrary.org/search.json?title=${encodeURIComponent(q)}&language=por&limit=40&fields=${fields}`,
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&language=por&limit=40&fields=${fields}`
+    ];
+    const all = await Promise.allSettled(urls.map(u => jsonV7(u, signal)));
+    const list = [];
+    for (const res of all){
+      for (const d of (res.status==='fulfilled' && res.value ? (res.value.docs||[]) : [])){
+        addV7(list, {...d, author_name:d.author_name||[], _source:'ol', _language:d.language||[], _publisher:(d.publisher||[]).join(' ')}, q, 25);
+      }
+    }
+    return list;
+  }
+
+  async function mercadoLivreV7(q, signal){
+    const urls = [
+      `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent('livro '+q)}&limit=50`,
+      `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(q+' livro')}&limit=50`,
+      `https://api.mercadolibre.com/sites/MLB/search?category=MLB1196&q=${encodeURIComponent(q)}&limit=50`
+    ];
+    const all = await Promise.allSettled(urls.map(u => jsonV7(u, signal)));
+    const list = [];
+    for (const res of all){
+      for (const p of (res.status==='fulfilled' && res.value ? (res.value.results||[]) : [])){
+        const rawTitle = p.title || '';
+        const img = p.thumbnail ? p.thumbnail.replace('-I.','-O.').replace('http://','https://') : null;
+        addV7(list, {title:rawTitle, author_name:[], number_of_pages_median:null, subject:[], isbn:[], cover_url:img, cover_i:null, _source:'ml'}, q, 45);
+      }
+    }
+    return list;
+  }
+
+  async function brasilApiV7(q, signal){
+    const isbn = String(q||'').replace(/[^0-9X]/gi,'');
+    if (isbn.length !== 10 && isbn.length !== 13) return [];
+    const d = await jsonV7(`https://brasilapi.com.br/api/isbn/v1/${isbn}`, signal);
+    if (!d || !d.title) return [];
+    return [{title:d.title, author_name:d.authors||[], number_of_pages_median:d.page_count||null, subject:d.subjects||[], isbn:[isbn], isbn13:isbn.length===13?isbn:null, isbn10:isbn.length===10?isbn:null, cover_url:null, cover_i:null, _source:'isbn', _score:4000}];
+  }
+
+  function catalogV7(q){
+    const list = [];
+    for (const b of BR_CATALOG_V7) addV7(list, {...b}, q, 35);
+    return list;
+  }
+
+  window.searchTitles = async function(q){
+    const results = document.getElementById('titleAutocomplete');
+    if (!results) return;
+    const query = String(q||'').trim();
+    if (query.length < 2) { results.classList.remove('open'); return; }
+    const cacheKey = 'v7|' + normV7(query);
+    if (autocompleteCache[cacheKey]) { renderAutocomplete(autocompleteCache[cacheKey]); return; }
+    if (autocompleteAbort) autocompleteAbort.abort();
+    autocompleteAbort = new AbortController();
+    const sig = autocompleteAbort.signal;
+    results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">buscando livros em português brasileiro...</div>`;
+    results.classList.add('open');
+    try {
+      const calls = await Promise.allSettled([
+        googleV7(query, sig),
+        openLibraryV7(query, sig),
+        mercadoLivreV7(query, sig),
+        brasilApiV7(query, sig)
+      ]);
+      const apiItems = calls.flatMap(c => c.status === 'fulfilled' ? c.value : []);
+      const items = dedupeV7([...apiItems, ...catalogV7(query)]);
+      autocompleteCache[cacheKey] = items;
+      renderAutocomplete(items);
+      console.info('[Minha Estante] busca v7', query, items);
+    } catch(e){
+      if (e.name === 'AbortError') return;
+      console.error('[Minha Estante] erro busca v7', e);
+      const items = dedupeV7(catalogV7(query));
+      autocompleteCache[cacheKey] = items;
+      renderAutocomplete(items);
+    }
+  };
+
+  window.renderAutocomplete = function(items){
+    const results = document.getElementById('titleAutocomplete');
+    if (!results) return;
+    if (!items || !items.length) {
+      results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft); line-height:1.35;">Nenhum livro PT-BR relevante encontrado. Tente título completo, título + autor ou ISBN.</div>`;
+      results.classList.add('open');
+      results._items = [];
+      return;
+    }
+    const badges = {google:'GB', ol:'OL', ml:'ML', isbn:'ISBN', cat:'BR'};
+    let html = '';
+    items.forEach((item,i)=>{
+      const isbn = (item.isbn||[]).find(s=>String(s).replace(/[^0-9X]/gi,'').length===13) || item.isbn13 || item.isbn10 || '';
+      const amz = item.amz_cover || (isbn ? `https://images-na.ssl-images-amazon.com/images/P/${isbn}.01.LZZZZZZZ.jpg` : '');
+      const ol = item.cover_i ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg` : '';
+      const primary = item.cover_url || amz || ol || '';
+      const cover = primary ? `<img class="autocomplete-cover" src="${primary}" alt="" loading="lazy" onerror="this.style.display='none'">` : `<div class="autocomplete-cover"></div>`;
+      const author = (item.author_name||[]).slice(0,2).join(', ');
+      const pages = item.number_of_pages_median ? `${item.number_of_pages_median} pgs` : '';
+      const badge = badges[item._source] ? `<span style="font-size:9px;background:var(--ink);color:var(--cream);border-radius:3px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle;">${badges[item._source]}</span>` : '';
+      html += `<div class="autocomplete-item" data-index="${i}" onmousedown="selectAutocomplete(${i})">${cover}<div class="autocomplete-info"><div class="autocomplete-title">${escapeHtml(item.title)}${badge}</div><div class="autocomplete-author">${escapeHtml(author || 'Autor não informado')}</div>${pages ? `<div class="autocomplete-pages">${pages}</div>` : ''}</div></div>`;
+    });
+    results.innerHTML = html;
+    results.classList.add('open');
+    results._items = items;
+  };
+})();
 
 </script>
 
