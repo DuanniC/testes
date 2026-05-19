@@ -9,6 +9,14 @@
 <meta name="apple-mobile-web-app-title" content="Estante">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Minha Estante ✦</title>
+<script>
+/* AJUSTE DUANNI — Google Books reativado.
+   O bloqueio global anterior fazia toda busca em googleapis retornar vazio,
+   então títulos e capas quase nunca eram encontrados. Agora o controle de 429
+   fica nas funções de busca, com fila, cache e retry — sem bloquear a API. */
+window.__BLOCK_GOOGLE_BOOKS_429__ = false;
+</script>
+
 
 <link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAABmJLR0QA/wD/AP+gvaeTAAAEZElEQVRYhcWWTWwbRRiGn9lde9e7dn7sOK3dAE1j2lKoyoFLAVUgOMAJJISQEELiiJAQKgha0XLqoZcCtx4RggM3OCBRRFsh4EhFUQVKq/xAm8SO7bXj+Gd3vV4Ph/w0SRMrdkv6nmZ3vu9733nn08wI1qBcnh4IB947El4C9gP93BvYwDWQX1qJg18JIYKVCbEyqNnjLyD5GkjcI9KtcEVV269EBg/9uypgmfx7QP2fyVcwowj1qJl4eEYpl6cHllfeNfnE5CQTk5O9CBiR7eAbKaXQlve8J9t/vfwTIMiMjXWdKwVP1UrXX9UkvNxN4lw2y7WrfwJQsWcB+PGHCwAcfvwI6VRq27VEm7c0lrp92+jv6+fa1T8YTSzw7BETgImbl5ksxnj62LFuSgE8oQB93WRYlskHJ08yXR5AUwWaKpheGOTDj09jWWZ39IKE1l3Gbbj1CheuGEtjp9JrGTYV4Lgu01M3mZmdI5fL47cC6vUGUStCMjlExDDQrSHePf4eAJ+d+5yLF3/BcV3yhSL1uoNlmYQ0ld27hxmOG+w/cAgzeqfZolYclxt/njhxhrChs290lFRqmIhhEI5EcOoORbtAIV/kr7/Hse0yAInEII89+ghDyQTJoSSGGaHpODiuSzaXZ2pqiqbb5OzZUxup5KYOeL7PqU8+Ih4f7GjfpYs/A/Dc8890jCuVypw+fWbTuY49EDQ9/EqN5mIVv1aj5boIIUBK+sZGURQFgHq1hV1wl5KkJBRWCOsaRkRFjygdxXUU0MgVkEGLcH8MaySFquubxlkxDSsWXf1utSSeE+C5LZpNsebG6VJA7MER2r6PX63SmC/gL1ZpOQ602/SNja7GrTgggFBYQY+o6IZKf1xHVQWlUqM3AZUbE/i1OuFYlFBfDGP0IUJmBMT6Ja11wPPaNN0Ap9aiXPTQdQUl3KMD/fszAMigjV+r0SyXqd+awa/Vie19cJ0DpaKHbijohoquK1gxg+UWoVRye3fAW6ggFIVQLErIsrDSKTTLQqi3m8uKaZiWRtMLcJ2A6qKPO+8hpcQ01bt3YDsQCkt7H7nzVu/dgYkpPLu0hkWAEET3pDHTu9fFLi74VEoeG08109JQQltzdHYgsw8y+zqFrKJvIETfwOZMpZKzZV7nU2IHsKUD9XqDXG6eXDZP0A5wXQ/LihCPDzI8nCSdXv/wmJvLks8XsO0SjYaLYeioikoqvYtoNLoFyxaX0blPzzMx+Q8PjKRIpXahqRpGxKBRb2DbZXL5AnOzOULhJcv9ps+ekRS7kkMkEoOYlonruLSCFtnsPLdmsmTG9vL+8bc3UslNBWwXc3M5ANIbGrILSFErjttAvNcKd4mSAvx+n8iRiBuKlOKL+yVAIL8TUkqlZl//TcDRHebPO5KMIoRoq0J7DZjdQXIfxOvJ5MGqAmAmMrdUJXiSnemHPIgXo0MHLsGGt4qUUq3b42+AeBM4DCTvEWlZIq4L5LeO5HwyebC6MvEftNe7M9ZkYG4AAAAASUVORK5CYII=">
 <link rel="apple-touch-icon" sizes="180x180" href="data:image/png;base64,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">
@@ -3106,6 +3114,195 @@ textarea,
 .profile-line strong { font-weight: 600; }
 .manual-cover-btn { display:inline-flex; align-items:center; justify-content:center; margin-top: 12px; padding: 10px 14px; border-radius: 999px; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 
+/* PERFIL DE LEITURA */
+.reading-profile-section {
+  background: var(--cream-dark);
+  border-radius: 20px;
+  padding: 24px;
+  margin: 0 16px 24px;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.profile-header h2 {
+  font-family: 'Fraunces', serif;
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--ink);
+  margin: 0;
+}
+
+.year-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.year-filter label {
+  font-weight: 500;
+}
+
+.year-filter select {
+  padding: 8px 12px;
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.year-filter select:hover {
+  border-color: var(--ink);
+}
+
+.year-filter select:focus {
+  outline: none;
+  border-color: var(--rose-deep);
+}
+
+.profile-loading {
+  text-align: center;
+  color: var(--ink-soft);
+  padding: 20px;
+  font-style: italic;
+}
+
+.profile-content {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.stat-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.stat-data {
+  flex: 1;
+}
+
+.stat-value {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.2;
+}
+
+.profile-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.detail-card {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.detail-card h3 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 14px;
+  color: var(--ink);
+  margin: 0 0 12px;
+  font-weight: 400;
+}
+
+.detail-card p {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.detail-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.detail-card li {
+  margin-bottom: 6px;
+}
+
+.detail-card li:last-child {
+  margin-bottom: 0;
+}
+
+.btn-toggle-section {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--rose-deep);
+  background: transparent;
+  color: var(--rose-deep);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-toggle-section:hover {
+  background: var(--rose-deep);
+  color: var(--cream);
+}
+
+.btn-toggle-section.active {
+  background: var(--rose-deep);
+  color: var(--cream);
+}
+
 </style>
 </head>
 <body>
@@ -3293,7 +3490,7 @@ create policy "acesso total genres" on genres
     </div>
     <div class="menu" id="menu">
       <button onclick="openAddBook()">✦ Adicionar livro</button>
-      <button onclick="openProfileModal()">☰ Perfil</button>
+      
       <button onclick="openGenresModal()">✿ Gerenciar gêneros</button>
       <button onclick="forceSync()">↻ Sincronizar agora</button>
       <button onclick="exportHtml()">⬇ Baixar backup (HTML)</button>
@@ -3314,6 +3511,7 @@ create policy "acesso total genres" on genres
     <button class="tab" data-filter="lido">Já lidos</button>
     <button class="tab" data-filter="abandoned">Abandonados</button>
   </div>
+  
   
   <div class="stats-section" id="statsSection" style="display:none"></div>
   
@@ -3746,16 +3944,7 @@ create policy "acesso total genres" on genres
 </div>
 
 
-<div class="modal-backdrop" id="profileModal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-head">
-      <h2 class="modal-title"><em>Perfil</em> de leitura</h2>
-      <button class="modal-close" onclick="closeProfileModal()">×</button>
-    </div>
-    <p class="modal-sub">Resumo geral das suas leituras</p>
-    <div id="profileSummaryContent"></div>
-  </div>
+
 </div>
 
 <script>
@@ -10179,56 +10368,93 @@ if (typeof renderCoverPicker === 'function') {
   };
 }
 
-function getProfileReadingStats() {
+function getProfileBookYear(book) {
+  const date = book.endDate || book.finish_date || book.df || book.date_finished || book.d || '';
+  if (!date) return null;
+  const y = String(date).slice(0, 4);
+  return /^\d{4}$/.test(y) ? y : null;
+}
+
+function getReadBooksOnly() {
+  return (state.books || []).filter(b => b.status === 'lido' || b.s === 'lido');
+}
+
+function getProfileReadingStats(yearFilter = '') {
   const books = state.books || [];
-  const readBooks = books.filter(b => b.status === 'lido');
-  const pagesRead = books.reduce((sum, b) => {
-    if (b.status === 'lido') return sum + (parseInt(b.pagesTotal) || parseInt(b.pagesCurrent) || 0);
-    if (b.status === 'reading') return sum + (parseInt(b.pagesCurrent) || 0);
-    return sum;
+  const allReadBooks = getReadBooksOnly();
+  const readBooks = yearFilter
+    ? allReadBooks.filter(b => getProfileBookYear(b) === String(yearFilter))
+    : allReadBooks;
+
+  const pagesRead = readBooks.reduce((sum, b) => {
+    return sum + (parseInt(b.pagesTotal) || parseInt(b.pagesCurrent) || parseInt(b.pages) || parseInt(b.p) || 0);
   }, 0);
-  const rated = books.filter(b => Number(b.rating) > 0);
-  const avgRating = rated.length ? (rated.reduce((s,b)=>s+Number(b.rating||0),0) / rated.length).toFixed(1) : '—';
+
+  const rated = readBooks.filter(b => Number(b.rating) > 0 || Number(b.n) > 0);
+  const avgRating = rated.length
+    ? (rated.reduce((s,b)=>s + Number(b.rating || b.n || 0),0) / rated.length).toFixed(1)
+    : '—';
+
   const byGenre = {};
-  readBooks.forEach(b => { byGenre[b.g] = (byGenre[b.g] || 0) + 1; });
+  readBooks.forEach(b => { const g = b.g || b.genre || 'sem-genero'; byGenre[g] = (byGenre[g] || 0) + 1; });
   const topGenres = Object.entries(byGenre).sort((a,b)=>b[1]-a[1]);
-  return { books, readBooks, pagesRead, rated, avgRating, topGenres };
+
+  const abandonedCount = books.filter(b => b.status === 'abandoned' || b.s === 'abandoned').length;
+  const readingCount = books.filter(b => b.status === 'reading' || b.s === 'reading').length;
+
+  return { books, allReadBooks, readBooks, pagesRead, rated, avgRating, topGenres, abandonedCount, readingCount };
+}
+
+function populateProfileYearFilter() {
+  const select = document.getElementById('profileYearSelect');
+  if (!select) return;
+  const current = select.value;
+  const years = [...new Set(getReadBooksOnly().map(getProfileBookYear).filter(Boolean))].sort((a,b)=>Number(b)-Number(a));
+  select.innerHTML = '<option value="">Todos</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+  if (years.includes(current)) select.value = current;
 }
 
 function renderProfileSummary() {
   const box = document.getElementById('profileSummaryContent');
   if (!box) return;
-  const s = getProfileReadingStats();
+  const yearSelect = document.getElementById('profileYearSelect');
+  const selectedYear = yearSelect ? yearSelect.value : '';
+  const s = getProfileReadingStats(selectedYear);
+  const periodText = selectedYear ? `em ${selectedYear}` : 'no total';
+
   const favoriteGenre = s.topGenres[0];
   const genreName = favoriteGenre ? (GENRES[favoriteGenre[0]]?.name || favoriteGenre[0]) : '—';
-  const genreText = favoriteGenre ? `Você leu ${favoriteGenre[1]} livro${favoriteGenre[1] === 1 ? '' : 's'} de ${genreName}.` : 'Quando marcar livros como lidos, seu gênero mais lido aparece aqui.';
-  const lines = s.topGenres.slice(0, 5).map(([g, count]) => `<div class="profile-line"><span>${GENRES[g]?.emoji || '•'} ${escapeHtml(GENRES[g]?.name || g)}</span><strong>${count}</strong></div>`).join('') || '<div class="profile-line"><span>Nenhum gênero com leitura finalizada ainda</span><strong>—</strong></div>';
+  const genreText = favoriteGenre
+    ? `Você leu ${favoriteGenre[1]} livro${favoriteGenre[1] === 1 ? '' : 's'} de ${genreName} ${periodText}.`
+    : `Nenhum livro marcado como já lido ${selectedYear ? 'neste ano' : 'ainda'}.`;
+
+  const lines = s.topGenres.slice(0, 5).map(([g, count]) => `<div class="profile-line"><span>${GENRES[g]?.emoji || '•'} ${escapeHtml(GENRES[g]?.name || g)}</span><strong>${count}</strong></div>`).join('') || '<div class="profile-line"><span>Nenhum gênero com leitura finalizada no período</span><strong>—</strong></div>';
+
+  const avgPages = s.readBooks.length ? Math.round(s.pagesRead / s.readBooks.length) : 0;
+  const extraCuriosities = [
+    `<div class="profile-line"><span>${escapeHtml(genreText)}</span></div>`,
+    `<div class="profile-line"><span>Média de páginas por livro lido</span><strong>${avgPages || '—'}</strong></div>`,
+    `<div class="profile-line"><span>Leituras em andamento</span><strong>${s.readingCount}</strong></div>`,
+    `<div class="profile-line"><span>Livros abandonados</span><strong>${s.abandonedCount}</strong></div>`
+  ].join('');
+
   box.innerHTML = `
     <div class="profile-summary-grid">
       <div class="profile-summary-card"><div class="profile-summary-number">${s.readBooks.length}</div><div class="profile-summary-label">livros lidos</div></div>
-      <div class="profile-summary-card"><div class="profile-summary-number">${s.pagesRead}</div><div class="profile-summary-label">páginas lidas</div></div>
+      <div class="profile-summary-card"><div class="profile-summary-number">${s.pagesRead.toLocaleString('pt-BR')}</div><div class="profile-summary-label">páginas lidas</div></div>
       <div class="profile-summary-card"><div class="profile-summary-number">${s.avgRating}</div><div class="profile-summary-label">média das notas</div></div>
       <div class="profile-summary-card"><div class="profile-summary-number">${s.rated.length}</div><div class="profile-summary-label">livros avaliados</div></div>
     </div>
     <div class="profile-section-title">Resumo geral</div>
-    <div class="profile-line"><span>${escapeHtml(genreText)}</span></div>
-    <div class="profile-line"><span>Você tem ${s.books.filter(b=>b.status==='reading').length} leitura${s.books.filter(b=>b.status==='reading').length === 1 ? '' : 's'} em andamento.</span></div>
+    ${extraCuriosities}
     <div class="profile-section-title">Gêneros mais lidos</div>
     ${lines}
   `;
 }
 
-function openProfileModal() {
-  closeMenu();
-  renderProfileSummary();
-  document.getElementById('profileModal').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
 
-function closeProfileModal() {
-  document.getElementById('profileModal').classList.remove('open');
-  document.body.style.overflow = '';
-}
+
+
 
 
 /* ==========================================================
@@ -10513,6 +10739,1098 @@ function closeProfileModal() {
   };
 })();
 
+
+
+/* =========================================================
+   CORREÇÃO FINAL - BUSCA DE CAPAS MAIS FORTE
+   Fontes: Google Books + Open Library + ISBN cover endpoints.
+   Observação: Google Imagens não libera busca direta sem API própria/CORS,
+   então fica como botão manual seguro para abrir a pesquisa pronta.
+   ========================================================= */
+(function(){
+  const COVER_SEARCH_TIMEOUT = 9000;
+
+  function coverSafeText(value){
+    return String(value || '').trim();
+  }
+
+  function coverEscapeAttr(value){
+    return String(value || '').replace(/[&<>'"]/g, c => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;'
+    }[c]));
+  }
+
+  function coverWithTimeout(url, opts = {}, timeoutMs = COVER_SEARCH_TIMEOUT){
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, { ...opts, signal: controller.signal })
+      .finally(() => clearTimeout(timer));
+  }
+
+  async function coverJson(url, timeoutMs = COVER_SEARCH_TIMEOUT){
+    try {
+      let resp;
+      if (typeof apiFetch === 'function') resp = await apiFetch(url, { headers: { 'Accept':'application/json' } });
+      else resp = await coverWithTimeout(url, { headers: { 'Accept':'application/json' } }, timeoutMs);
+      if (!resp || !resp.ok) return null;
+      return await resp.json();
+    } catch(e){
+      try {
+        const resp = await coverWithTimeout(url, { headers: { 'Accept':'application/json' } }, timeoutMs);
+        if (!resp.ok) return null;
+        return await resp.json();
+      } catch(err){
+        console.warn('[capas corrigido] falha json:', url, err);
+        return null;
+      }
+    }
+  }
+
+  function normalizeGoogleImage(url){
+    if (!url) return '';
+    return String(url)
+      .replace(/^http:/, 'https:')
+      .replace(/[?&]edge=curl/g, '')
+      .replace(/zoom=\d+/g, 'zoom=0');
+  }
+
+  function getGoogleImageLinks(info){
+    const links = (info && info.imageLinks) || {};
+    return [links.extraLarge, links.large, links.medium, links.thumbnail, links.smallThumbnail]
+      .map(normalizeGoogleImage)
+      .filter(Boolean);
+  }
+
+  function extractIsbnsFromGoogle(items){
+    const out = [];
+    (items || []).forEach(item => {
+      const ids = item?.volumeInfo?.industryIdentifiers || [];
+      ids.forEach(id => {
+        const clean = String(id.identifier || '').replace(/[^0-9X]/gi, '');
+        if ((clean.length === 10 || clean.length === 13) && !out.includes(clean)) out.push(clean);
+      });
+    });
+    return out;
+  }
+
+  function extractIsbnsFromOpenLibrary(docs){
+    const out = [];
+    (docs || []).forEach(doc => {
+      (doc.isbn || []).forEach(isbn => {
+        const clean = String(isbn || '').replace(/[^0-9X]/gi, '');
+        if ((clean.length === 10 || clean.length === 13) && !out.includes(clean)) out.push(clean);
+      });
+    });
+    return out;
+  }
+
+  async function findCoverCandidates(book){
+    const title = coverSafeText(book?.t);
+    const author = coverSafeText(book?.a);
+    const full = [title, author].filter(Boolean).join(' ');
+    const candidates = [];
+    const seen = new Set();
+    const isbns = [];
+
+    const add = (url, source) => {
+      url = normalizeGoogleImage(url || '');
+      if (!url || seen.has(url)) return;
+      seen.add(url);
+      candidates.push({ url, source });
+    };
+    const addIsbn = (isbn) => {
+      const clean = String(isbn || '').replace(/[^0-9X]/gi, '');
+      if ((clean.length === 10 || clean.length === 13) && !isbns.includes(clean)) isbns.push(clean);
+    };
+
+    // 1) Google Books: costuma trazer capas boas e rápidas.
+    const googleQueries = [
+      `intitle:${title} inauthor:${author}`,
+      `${title} ${author}`,
+      title
+    ].filter(q => q && q.trim().length > 1);
+
+    for (const q of googleQueries) {
+      const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=20&printType=books`;
+      const data = await coverJson(url, 9000);
+      const items = data?.items || [];
+      items.forEach(item => {
+        const info = item.volumeInfo || {};
+        getGoogleImageLinks(info).forEach(img => add(img, 'Google Books'));
+      });
+      extractIsbnsFromGoogle(items).forEach(addIsbn);
+      if (candidates.length >= 8) break;
+    }
+
+    // 2) Open Library: busca por título+autor e depois título livre.
+    const fields = 'title,author_name,cover_i,isbn,language';
+    const olUrls = [
+      `https://openlibrary.org/search.json?title=${encodeURIComponent(title)}&author=${encodeURIComponent(author)}&limit=20&fields=${fields}`,
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(full || title)}&limit=20&fields=${fields}`
+    ];
+
+    for (const url of olUrls) {
+      const data = await coverJson(url, 9000);
+      const docs = data?.docs || [];
+      docs.forEach(doc => {
+        if (doc.cover_i) add(`https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`, 'Open Library');
+      });
+      extractIsbnsFromOpenLibrary(docs).forEach(addIsbn);
+    }
+
+    // 3) ISBN endpoints da Open Library, muito úteis quando a API acha ISBN mas não imagem direta.
+    isbns.slice(0, 10).forEach(isbn => {
+      add(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`, 'ISBN');
+    });
+
+    return candidates.slice(0, 24);
+  }
+
+  window.openCoverPicker = async function(e){
+    if (e) e.preventDefault();
+    if (!editingBookId) return;
+    const book = getBookById(editingBookId);
+    if (!book) return;
+
+    coverPickerCurrentBook = book;
+    const bookLabel = document.getElementById('coverPickerBook');
+    const customInput = document.getElementById('customCoverUrl');
+    const modal = document.getElementById('coverPickerModal');
+    const grid = document.getElementById('coverPickerGrid');
+
+    if (bookLabel) bookLabel.textContent = `"${book.t || ''}" — ${book.a || ''}`;
+    if (customInput) customInput.value = '';
+    if (modal) modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (grid) grid.innerHTML = `<div class="cover-picker-empty">Buscando capas...</div>`;
+
+    try {
+      const covers = await findCoverCandidates(book);
+      window.renderCoverPicker(covers);
+    } catch(err){
+      console.warn('[capas corrigido] busca falhou:', err);
+      window.renderCoverPicker([]);
+    }
+  };
+
+  window.openGoogleImagesForBook = function(title, author){
+    const q = `${title || ''} ${author || ''} capa livro`.trim();
+    window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(q)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  window.renderCoverPicker = function(covers){
+    const grid = document.getElementById('coverPickerGrid');
+    if (!grid) return;
+    const book = coverPickerCurrentBook || {};
+    const title = coverSafeText(book.t);
+    const author = coverSafeText(book.a);
+    const manualBtn = `<button class="manual-cover-btn" onclick="openGoogleImagesForBook('${coverEscapeAttr(title)}', '${coverEscapeAttr(author)}')">Buscar no Google Imagens</button>`;
+
+    if (!covers || covers.length === 0) {
+      grid.innerHTML = `<div class="cover-picker-empty">Nenhuma capa encontrada automaticamente.<br><small style="font-size:12px; opacity:.75;">Você pode abrir o Google Imagens ou colar uma URL abaixo.</small><br>${manualBtn}</div>`;
+      return;
+    }
+
+    const currentUrl = typeof getBookCover === 'function' ? getBookCover(book) : '';
+    grid.innerHTML = covers.map(c => {
+      const url = coverSafeText(c.url);
+      const source = coverSafeText(c.source || 'Capa');
+      const selected = url === currentUrl ? ' selected' : '';
+      return `<div class="cover-picker-item${selected}" onclick="selectCoverFromPicker('${coverEscapeAttr(url)}')"><img src="${coverEscapeAttr(url)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.parentElement.style.display='none'"><div class="source-badge">${coverEscapeAttr(source)}</div></div>`;
+    }).join('') + `<div class="cover-picker-empty" style="grid-column:1/-1;">${manualBtn}</div>`;
+  };
+})();
+
+
+/* =========================================================
+   CORREÇÃO ANTI-429 — CAPAS SEM GOOGLE BOOKS AUTOMÁTICO
+   Motivo: erro 429 = limite/bloqueio temporário do Google Books.
+   Agora o botão "Buscar capa" usa Open Library + endpoints por ISBN,
+   com cache local e sem várias chamadas seguidas para o Google.
+   ========================================================= */
+(function(){
+  const COVER_CACHE_KEY = 'minha_estante_cover_cache_v2';
+  const memoryCache = new Map();
+
+  function txt(v){ return String(v || '').trim(); }
+  function norm(v){
+    return txt(v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+  }
+  function esc(v){
+    return String(v || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  }
+  function cacheKey(book){ return norm(`${book?.t || ''} ${book?.a || ''}`); }
+  function readCache(){
+    try { return JSON.parse(localStorage.getItem(COVER_CACHE_KEY) || '{}'); }
+    catch(e){ return {}; }
+  }
+  function writeCache(key, covers){
+    try {
+      const data = readCache();
+      data[key] = { at: Date.now(), covers };
+      localStorage.setItem(COVER_CACHE_KEY, JSON.stringify(data));
+    } catch(e){}
+  }
+  function fromCache(key){
+    if (memoryCache.has(key)) return memoryCache.get(key);
+    const data = readCache()[key];
+    if (!data || !Array.isArray(data.covers)) return null;
+    // 30 dias de cache
+    if (Date.now() - (data.at || 0) > 30 * 24 * 60 * 60 * 1000) return null;
+    memoryCache.set(key, data.covers);
+    return data.covers;
+  }
+  async function fetchJson(url, timeoutMs = 10000){
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const resp = await fetch(url, { signal: controller.signal, headers: { 'Accept':'application/json' } });
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch(e){
+      console.warn('[capas anti-429] falha:', url, e);
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  function scoreDoc(doc, title, author){
+    const nt = norm(title), na = norm(author), dt = norm(doc.title || ''), da = norm((doc.author_name || []).join(' '));
+    let score = 0;
+    if (dt === nt) score += 100;
+    else if (dt.includes(nt) || nt.includes(dt)) score += 70;
+    else {
+      const tokens = nt.split(' ').filter(x => x.length > 2);
+      score += tokens.filter(x => dt.includes(x)).length * 12;
+    }
+    if (na && da.includes(na)) score += 45;
+    if (doc.cover_i) score += 30;
+    if (Array.isArray(doc.isbn) && doc.isbn.length) score += 10;
+    if ((doc.language || []).some(l => String(l).toLowerCase().startsWith('por') || String(l).toLowerCase().startsWith('pt'))) score += 8;
+    return score;
+  }
+  function addUnique(covers, seen, url, source){
+    url = txt(url).replace(/^http:/, 'https:');
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    covers.push({ url, source });
+  }
+  async function searchOpenLibraryCovers(book){
+    const title = txt(book?.t);
+    const author = txt(book?.a);
+    const key = cacheKey(book);
+    const cached = fromCache(key);
+    if (cached) return cached;
+
+    const covers = [];
+    const seen = new Set();
+    const isbnSeen = new Set();
+    const fields = 'title,author_name,cover_i,isbn,language,publisher';
+    const urls = [
+      `https://openlibrary.org/search.json?title=${encodeURIComponent(title)}&author=${encodeURIComponent(author)}&limit=25&fields=${fields}`,
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(`${title} ${author}`.trim())}&limit=25&fields=${fields}`,
+      `https://openlibrary.org/search.json?title=${encodeURIComponent(title)}&limit=25&fields=${fields}`
+    ];
+
+    let docs = [];
+    for (const url of urls) {
+      const data = await fetchJson(url);
+      if (data && Array.isArray(data.docs)) docs = docs.concat(data.docs);
+      if (docs.some(d => d.cover_i)) break;
+    }
+
+    docs = docs
+      .map(d => ({...d, _score: scoreDoc(d, title, author)}))
+      .filter(d => d._score >= 35)
+      .sort((a,b) => b._score - a._score)
+      .slice(0, 18);
+
+    docs.forEach(doc => {
+      if (doc.cover_i) {
+        addUnique(covers, seen, `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`, 'Open Library');
+        addUnique(covers, seen, `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`, 'Open Library');
+      }
+      (doc.isbn || []).forEach(isbn => {
+        const clean = String(isbn || '').replace(/[^0-9X]/gi, '');
+        if ((clean.length === 10 || clean.length === 13) && !isbnSeen.has(clean)) isbnSeen.add(clean);
+      });
+    });
+
+    [...isbnSeen].slice(0, 12).forEach(isbn => {
+      addUnique(covers, seen, `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`, 'ISBN');
+      addUnique(covers, seen, `https://covers.openlibrary.org/b/isbn/${isbn}-M.jpg`, 'ISBN');
+    });
+
+    const finalCovers = covers.slice(0, 24);
+    memoryCache.set(key, finalCovers);
+    writeCache(key, finalCovers);
+    return finalCovers;
+  }
+
+  window.openCoverPicker = async function(e){
+    if (e) e.preventDefault();
+    if (!editingBookId) return;
+    const book = getBookById(editingBookId);
+    if (!book) return;
+
+    coverPickerCurrentBook = book;
+    const bookLabel = document.getElementById('coverPickerBook');
+    const customInput = document.getElementById('customCoverUrl');
+    const modal = document.getElementById('coverPickerModal');
+    const grid = document.getElementById('coverPickerGrid');
+
+    if (bookLabel) bookLabel.textContent = `"${book.t || ''}" — ${book.a || ''}`;
+    if (customInput) customInput.value = '';
+    if (modal) modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    if (grid) grid.innerHTML = `<div class="cover-picker-empty">Buscando capas...</div>`;
+
+    try {
+      const covers = await searchOpenLibraryCovers(book);
+      window.renderCoverPicker(covers);
+    } catch(err){
+      console.warn('[capas anti-429] busca falhou:', err);
+      window.renderCoverPicker([]);
+    }
+  };
+
+  window.openGoogleImagesForBook = function(title, author){
+    const q = `${title || ''} ${author || ''} capa livro`.trim();
+    const url = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(q)}`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
+  window.renderCoverPicker = function(covers){
+    const grid = document.getElementById('coverPickerGrid');
+    if (!grid) return;
+    const book = coverPickerCurrentBook || {};
+    const title = txt(book.t);
+    const author = txt(book.a);
+    const manualBtn = `<button class="manual-cover-btn" onclick="openGoogleImagesForBook('${esc(title)}', '${esc(author)}')">Buscar no Google Imagens</button>`;
+
+    if (!covers || covers.length === 0) {
+      grid.innerHTML = `<div class="cover-picker-empty">Nenhuma capa encontrada automaticamente.<br><small style="font-size:12px; opacity:.75;">O Google Books foi desativado nesta busca para evitar o erro 429. Você pode abrir o Google Imagens ou colar a URL da capa abaixo.</small><br>${manualBtn}</div>`;
+      return;
+    }
+
+    const currentUrl = typeof getBookCover === 'function' ? getBookCover(book) : '';
+    grid.innerHTML = covers.map(c => {
+      const url = txt(c.url);
+      const source = txt(c.source || 'Capa');
+      const selected = url === currentUrl ? ' selected' : '';
+      return `<div class="cover-picker-item${selected}" onclick="selectCoverFromPicker('${esc(url)}')"><img src="${esc(url)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.parentElement.style.display='none'"><div class="source-badge">${esc(source)}</div></div>`;
+    }).join('') + `<div class="cover-picker-empty" style="grid-column:1/-1;">${manualBtn}</div>`;
+  };
+})();
+
+</script>
+
+
+
+
+<script>
+/* ==========================================================
+   AJUSTE FINAL DUANNI — Busca de livros/capas mais forte
+   Estratégia: Google Books + Open Library + BrasilAPI + ML,
+   com cache, throttle, dedupe, ranking menos rígido e fallback.
+   ========================================================== */
+(function(){
+  const GB_MIN_INTERVAL = 900;
+  let gbLastCall = 0;
+  const localSearchCache = new Map();
+
+  const clean = (v) => String(v || '').trim();
+  const norm = (v) => clean(v)
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[“”"'´`]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const tokens = (v) => norm(v).split(' ').filter(t => t.length > 1 && !['livro','volume','vol','edicao','edição','de','do','da','dos','das','a','o','as','os','um','uma','e','em','no','na','para','por','com'].includes(t));
+  const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
+  async function safeJson(url, opts = {}, timeout = 9000) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeout);
+    const signal = opts.signal || ctrl.signal;
+    try {
+      const resp = await fetch(url, { ...opts, signal, headers: { 'Accept': 'application/json', ...(opts.headers || {}) } });
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch(e) {
+      if (e && e.name === 'AbortError') throw e;
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function googleJson(url, signal, retries = 2) {
+    const elapsed = Date.now() - gbLastCall;
+    if (elapsed < GB_MIN_INTERVAL) await wait(GB_MIN_INTERVAL - elapsed);
+    gbLastCall = Date.now();
+    for (let i = 0; i <= retries; i++) {
+      try {
+        const resp = await fetch(url, { signal, headers: { 'Accept': 'application/json' } });
+        if (resp.status === 429) { await wait(1600 * Math.pow(2, i)); continue; }
+        if (!resp.ok) return null;
+        return await resp.json();
+      } catch(e) {
+        if (e && e.name === 'AbortError') throw e;
+        await wait(500 * (i + 1));
+      }
+    }
+    return null;
+  }
+
+  function googleCover(info) {
+    const img = (info && info.imageLinks) || {};
+    const url = img.extraLarge || img.large || img.medium || img.small || img.thumbnail || img.smallThumbnail || '';
+    return url ? url.replace('http://', 'https://').replace(/zoom=1/g, 'zoom=0').replace(/[?&]edge=curl/g, '') : '';
+  }
+
+  function idsFromGoogle(info) {
+    return ((info && info.industryIdentifiers) || []).map(x => clean(x.identifier)).filter(Boolean);
+  }
+
+  function scoreItem(item, query) {
+    const qn = norm(query);
+    const title = norm(item.title);
+    const author = norm((item.author_name || []).join(' '));
+    const qt = tokens(query);
+    let score = 0;
+    if (title === qn) score += 180;
+    if (title.includes(qn) || qn.includes(title)) score += 90;
+    const hitsTitle = qt.filter(t => title.includes(t)).length;
+    const hitsAuthor = qt.filter(t => author.includes(t)).length;
+    score += hitsTitle * 35 + hitsAuthor * 18;
+    if (item.cover_url || item.cover_i) score += 25;
+    if ((item.isbn || []).length) score += 18;
+    if (item.number_of_pages_median) score += 10;
+    if (item._source === 'google') score += 18;
+    if (item._source === 'isbn') score += 40;
+    if (item._source === 'ol') score += 8;
+    if (item._language === 'pt' || (Array.isArray(item._language) && item._language.includes('por'))) score += 18;
+    return score;
+  }
+
+  function addDedupe(list, item, query) {
+    if (!item || !item.title) return;
+    item.title = clean(item.title);
+    item.author_name = Array.isArray(item.author_name) ? item.author_name.filter(Boolean) : (item.author_name ? [item.author_name] : []);
+    item.isbn = Array.isArray(item.isbn) ? item.isbn.filter(Boolean) : [];
+    item._score = Math.max(item._score || 0, scoreItem(item, query));
+    const key = norm(item.title) + '|' + norm((item.author_name || []).slice(0,1).join(' '));
+    const existing = list.find(x => (norm(x.title) + '|' + norm((x.author_name || []).slice(0,1).join(' '))) === key);
+    if (existing) {
+      if (!existing.cover_url && item.cover_url) existing.cover_url = item.cover_url;
+      if (!existing.cover_i && item.cover_i) existing.cover_i = item.cover_i;
+      if (!existing.number_of_pages_median && item.number_of_pages_median) existing.number_of_pages_median = item.number_of_pages_median;
+      existing.isbn = [...new Set([...(existing.isbn || []), ...(item.isbn || [])])];
+      existing._score = Math.max(existing._score || 0, item._score || 0);
+      if (existing._source !== 'google' && item._source === 'google') existing._source = 'google';
+      return;
+    }
+    list.push(item);
+  }
+
+  async function searchGoogle(query, signal) {
+    const fields = 'fields=items(volumeInfo(title,authors,imageLinks,pageCount,categories,industryIdentifiers,language,publishedDate,publisher))';
+    const q = clean(query);
+    const quoted = '"' + q + '"';
+    const urls = [
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(quoted)}&maxResults=20&printType=books&langRestrict=pt&country=BR&orderBy=relevance&${fields}`,
+      `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(q)}&maxResults=20&printType=books&langRestrict=pt&orderBy=relevance&${fields}`,
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=25&printType=books&country=BR&orderBy=relevance&${fields}`,
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=25&printType=books&orderBy=relevance&${fields}`
+    ];
+    const out = [];
+    for (const url of urls) {
+      const data = await googleJson(url, signal);
+      for (const raw of ((data && data.items) || [])) {
+        const v = raw.volumeInfo || {};
+        addDedupe(out, {
+          title: v.title,
+          author_name: v.authors || [],
+          number_of_pages_median: v.pageCount || null,
+          subject: v.categories || [],
+          isbn: idsFromGoogle(v),
+          isbn13: (idsFromGoogle(v).find(x => x.length === 13) || null),
+          isbn10: (idsFromGoogle(v).find(x => x.length === 10) || null),
+          cover_url: googleCover(v),
+          cover_i: null,
+          _source: 'google',
+          _language: v.language,
+          _publisher: v.publisher || ''
+        }, query);
+      }
+    }
+    return out;
+  }
+
+  async function searchOpenLibrary(query, signal) {
+    const fields = 'title,author_name,cover_i,number_of_pages_median,subject,isbn,language,edition_count,publisher';
+    const urls = [
+      `https://openlibrary.org/search.json?title=${encodeURIComponent(query)}&limit=40&fields=${fields}`,
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=40&fields=${fields}`,
+      `https://openlibrary.org/search.json?title=${encodeURIComponent(query)}&language=por&limit=40&fields=${fields}`
+    ];
+    const out = [];
+    for (const url of urls) {
+      const data = await safeJson(url, { signal });
+      for (const d of ((data && data.docs) || [])) {
+        addDedupe(out, {
+          ...d,
+          author_name: d.author_name || [],
+          cover_url: null,
+          _source: 'ol',
+          _language: d.language || [],
+          _publisher: (d.publisher || []).join(' ')
+        }, query);
+      }
+    }
+    return out;
+  }
+
+  async function searchMercadoLivre(query, signal) {
+    const urls = [
+      `https://api.mercadolibre.com/sites/MLB/search?category=MLB1196&q=${encodeURIComponent(query)}&limit=30`,
+      `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent('livro ' + query)}&limit=30`
+    ];
+    const out = [];
+    for (const url of urls) {
+      const data = await safeJson(url, { signal });
+      for (const p of ((data && data.results) || [])) {
+        const img = p.thumbnail ? p.thumbnail.replace('-I.', '-O.').replace('http://', 'https://') : null;
+        addDedupe(out, { title: p.title, author_name: [], isbn: [], number_of_pages_median: null, cover_url: img, cover_i: null, _source: 'ml' }, query);
+      }
+    }
+    return out;
+  }
+
+  async function searchBrasilApi(query, signal) {
+    const isbn = clean(query).replace(/[^0-9X]/gi, '');
+    if (!(isbn.length === 10 || isbn.length === 13)) return [];
+    const data = await safeJson(`https://brasilapi.com.br/api/isbn/v1/${isbn}`, { signal });
+    if (!data || !data.title) return [];
+    return [{ title: data.title, author_name: data.authors || [], number_of_pages_median: data.page_count || null, subject: data.subjects || [], isbn: [isbn], isbn13: isbn.length === 13 ? isbn : null, isbn10: isbn.length === 10 ? isbn : null, cover_url: null, cover_i: null, _source: 'isbn', _score: 5000 }];
+  }
+
+  function finalSort(items, query) {
+    return items
+      .map(x => ({ ...x, _score: Math.max(x._score || 0, scoreItem(x, query)) }))
+      .filter(x => x._score >= 25 || norm(x.title).includes(norm(query)) || norm(query).includes(norm(x.title)))
+      .sort((a,b) => (b._score || 0) - (a._score || 0))
+      .slice(0, 24);
+  }
+
+  window.searchTitles = async function(q) {
+    const results = document.getElementById('titleAutocomplete');
+    if (!results) return;
+    const query = clean(q);
+    if (query.length < 2) { results.classList.remove('open'); return; }
+    const cacheKey = 'duanni-final|' + norm(query);
+    if (localSearchCache.has(cacheKey)) { window.renderAutocomplete(localSearchCache.get(cacheKey)); return; }
+    if (window.autocompleteAbort) window.autocompleteAbort.abort();
+    window.autocompleteAbort = new AbortController();
+    const signal = window.autocompleteAbort.signal;
+    results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">Buscando em Google Books, Open Library e catálogos BR...</div>`;
+    results.classList.add('open');
+    try {
+      const settled = await Promise.allSettled([
+        searchGoogle(query, signal),
+        searchOpenLibrary(query, signal),
+        searchMercadoLivre(query, signal),
+        searchBrasilApi(query, signal)
+      ]);
+      const merged = [];
+      for (const res of settled) if (res.status === 'fulfilled') for (const item of res.value) addDedupe(merged, item, query);
+      const items = finalSort(merged, query);
+      localSearchCache.set(cacheKey, items);
+      window.renderAutocomplete(items);
+      console.info('[Minha Estante] busca corrigida', query, items);
+    } catch(e) {
+      if (e && e.name === 'AbortError') return;
+      console.warn('[Minha Estante] falha na busca corrigida', e);
+      window.renderAutocomplete([]);
+    }
+  };
+
+  async function findBestMeta(title, author, signal) {
+    const query = [title, author].filter(Boolean).join(' ');
+    const merged = [];
+    const settled = await Promise.allSettled([searchGoogle(query, signal), searchOpenLibrary(query, signal)]);
+    for (const res of settled) if (res.status === 'fulfilled') for (const item of res.value) addDedupe(merged, item, query);
+    return finalSort(merged, query)[0] || null;
+  }
+
+  if (typeof window.coverKey !== 'function') window.coverKey = (t,a) => norm(t + '|' + a);
+
+  window.fetchBookMeta = async function(title, author) {
+    const key = window.coverKey(title, author);
+    if (!window.state) window.state = {};
+    if (!state.covers) state.covers = {};
+    if (!state.bookPages) state.bookPages = {};
+    const cachedCover = state.covers[key] && state.covers[key] !== 'NONE' ? state.covers[key] : null;
+    const cachedPages = state.bookPages[key] || null;
+    if (cachedCover && cachedPages) return { cover: cachedCover, pages: cachedPages };
+
+    const ctrl = new AbortController();
+    const best = await findBestMeta(title, author, ctrl.signal);
+    let cover = cachedCover;
+    let pages = cachedPages;
+    if (best) {
+      pages = pages || best.number_of_pages_median || null;
+      cover = cover || best.cover_url || (best.cover_i ? `https://covers.openlibrary.org/b/id/${best.cover_i}-L.jpg` : null);
+      const isbn = (best.isbn || []).find(x => String(x).replace(/[^0-9X]/gi, '').length === 13) || (best.isbn || [])[0];
+      if (!cover && isbn) cover = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
+    }
+    if (cover) state.covers[key] = cover;
+    else if (!state.covers[key]) state.covers[key] = 'NONE';
+    if (pages) state.bookPages[key] = pages;
+    try { if (typeof scheduleSave === 'function') scheduleSave(); } catch(e) {}
+    return { cover, pages };
+  };
+
+  window.searchOpenLibraryCovers = async function(book) {
+    const title = clean(book && (book.t || book.title));
+    const author = clean(book && (book.a || book.author));
+    const query = [title, author].filter(Boolean).join(' ');
+    const merged = [];
+    const settled = await Promise.allSettled([searchGoogle(query), searchOpenLibrary(query)]);
+    for (const res of settled) if (res.status === 'fulfilled') for (const item of res.value) addDedupe(merged, item, query);
+    const seen = new Set();
+    const covers = [];
+    const push = (url, source) => {
+      if (!url) return;
+      const cleanUrl = String(url).replace('http://','https://');
+      if (seen.has(cleanUrl)) return;
+      seen.add(cleanUrl);
+      covers.push({ url: cleanUrl, source });
+    };
+    finalSort(merged, query).forEach(item => {
+      push(item.cover_url, item._source === 'google' ? 'Google Books' : 'Open Library');
+      if (item.cover_i) push(`https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg`, 'Open Library');
+      (item.isbn || []).slice(0, 8).forEach(isbn => push(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`, 'ISBN'));
+    });
+    return covers.slice(0, 30);
+  };
+})();
+</script>
+
+<script>
+/* ==========================================================
+   CORREÇÃO REAL — sem Google 429 e sem Mercado Livre 403
+   Motivo: esses erros vêm de limite/bloqueio no navegador.
+   Agora o autocomplete usa Open Library + opção manual.
+   ========================================================== */
+(function(){
+  const CACHE_KEY = 'minha_estante_busca_livros_sem_erro_v1';
+  const mem = new Map();
+  let activeController = null;
+
+  const clean = v => String(v || '').trim();
+  const norm = v => clean(v).toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const esc = v => String(v || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  const usefulTokens = v => norm(v).split(' ').filter(t => t.length > 2 && !['livro','ebook','kindle','romance','sucesso','bookgram','uma','um','dos','das','para','com','sem','que','por','the','and'].includes(t));
+  const isHttp = url => /^https?:\/\//i.test(String(url || ''));
+
+  function readCache(){ try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); } catch(e){ return {}; } }
+  function writeCache(k, v){ try { const c = readCache(); c[k] = { at: Date.now(), items: v }; localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch(e){} }
+  function cached(k){
+    if (mem.has(k)) return mem.get(k);
+    const c = readCache()[k];
+    if (!c || !Array.isArray(c.items)) return null;
+    if (Date.now() - (c.at || 0) > 7*24*60*60*1000) return null;
+    mem.set(k, c.items);
+    return c.items;
+  }
+
+  async function json(url, signal, timeoutMs = 9000){
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const resp = await fetch(url, { signal: signal || ctrl.signal, headers: { 'Accept':'application/json' } });
+      if (!resp.ok) return null;
+      return await resp.json();
+    } catch(e) {
+      if (e && e.name === 'AbortError') throw e;
+      return null;
+    } finally { clearTimeout(timer); }
+  }
+
+  function score(doc, q){
+    const nq = norm(q), nt = norm(doc.title), na = norm((doc.author_name || []).join(' '));
+    const qt = usefulTokens(q);
+    let s = 0;
+    if (nt === nq) s += 160;
+    if (nt.includes(nq) || nq.includes(nt)) s += 80;
+    s += qt.filter(t => nt.includes(t)).length * 35;
+    s += qt.filter(t => na.includes(t)).length * 15;
+    if (doc.cover_i || doc.cover_url) s += 22;
+    if (Array.isArray(doc.isbn) && doc.isbn.length) s += 15;
+    if (doc.number_of_pages_median) s += 8;
+    if ((doc.language || []).includes('por') || doc._language === 'pt') s += 12;
+    return s;
+  }
+
+  function add(list, item, q){
+    if (!item || !clean(item.title)) return;
+    item.title = clean(item.title);
+    item.author_name = Array.isArray(item.author_name) ? item.author_name.filter(Boolean) : (item.author_name ? [item.author_name] : []);
+    item.isbn = Array.isArray(item.isbn) ? item.isbn.filter(Boolean) : [];
+    item.cover_url = isHttp(item.cover_url) ? item.cover_url.replace('http://','https://') : '';
+    item._score = Math.max(item._score || 0, score(item, q));
+    const key = norm(item.title) + '|' + norm((item.author_name || [])[0] || '');
+    const old = list.find(x => (norm(x.title) + '|' + norm((x.author_name || [])[0] || '')) === key);
+    if (old) {
+      if (!old.cover_url && item.cover_url) old.cover_url = item.cover_url;
+      if (!old.cover_i && item.cover_i) old.cover_i = item.cover_i;
+      if (!old.number_of_pages_median && item.number_of_pages_median) old.number_of_pages_median = item.number_of_pages_median;
+      old.isbn = [...new Set([...(old.isbn || []), ...(item.isbn || [])])];
+      old._score = Math.max(old._score || 0, item._score || 0);
+      return;
+    }
+    list.push(item);
+  }
+
+  async function searchOpenLibrary(q, signal){
+    const fields = 'title,author_name,cover_i,number_of_pages_median,subject,isbn,language,publisher';
+    const simplified = usefulTokens(q).join(' ') || q;
+    const urls = [
+      `https://openlibrary.org/search.json?title=${encodeURIComponent(q)}&limit=35&fields=${fields}`,
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=35&fields=${fields}`,
+      simplified !== q ? `https://openlibrary.org/search.json?q=${encodeURIComponent(simplified)}&limit=35&fields=${fields}` : ''
+    ].filter(Boolean);
+    const out = [];
+    const settled = await Promise.allSettled(urls.map(u => json(u, signal)));
+    for (const res of settled) {
+      const docs = res.status === 'fulfilled' && res.value ? (res.value.docs || []) : [];
+      docs.forEach(d => add(out, {...d, author_name:d.author_name || [], _source:'ol'}, q));
+    }
+    return out;
+  }
+
+  async function searchByIsbn(q, signal){
+    const isbn = clean(q).replace(/[^0-9X]/gi, '');
+    if (!(isbn.length === 10 || isbn.length === 13)) return [];
+    const data = await json(`https://openlibrary.org/isbn/${isbn}.json`, signal);
+    if (!data || !data.title) return [];
+    let authors = [];
+    if (Array.isArray(data.authors)) {
+      authors = data.authors.map(a => String(a.key || '').split('/').pop()).filter(Boolean);
+    }
+    return [{
+      title: data.title,
+      author_name: authors,
+      isbn: [isbn],
+      number_of_pages_median: data.number_of_pages || null,
+      cover_url: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`,
+      _source: 'isbn',
+      _score: 999
+    }];
+  }
+
+  function manualItem(q){
+    return {
+      title: q,
+      author_name: [],
+      isbn: [],
+      number_of_pages_median: null,
+      cover_url: '',
+      cover_i: null,
+      _source: 'manual',
+      _score: 1
+    };
+  }
+
+  function finalItems(items, q){
+    const nq = norm(q);
+    const qt = usefulTokens(q);
+    const filtered = items
+      .map(x => ({...x, _score: Math.max(x._score || 0, score(x, q))}))
+      .filter(x => x._score >= 30 || norm(x.title).includes(nq) || qt.some(t => norm(x.title).includes(t)))
+      .sort((a,b) => (b._score || 0) - (a._score || 0))
+      .slice(0, 14);
+    filtered.push(manualItem(q));
+    return filtered;
+  }
+
+  window.renderAutocomplete = function(items){
+    const results = document.getElementById('titleAutocomplete');
+    if (!results) return;
+    const list = Array.isArray(items) ? items : [];
+    if (!list.length) {
+      results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft); line-height:1.35;">Nenhum livro encontrado. Você ainda pode preencher manualmente.</div>`;
+      results._items = [];
+      results.classList.add('open');
+      return;
+    }
+    const badgeMap = { ol:'Open Library', isbn:'ISBN', manual:'Manual' };
+    results.innerHTML = list.map((item, i) => {
+      const olCover = item.cover_i ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg` : '';
+      const coverUrl = isHttp(item.cover_url) ? item.cover_url : olCover;
+      const cover = coverUrl ? `<img class="autocomplete-cover" src="${esc(coverUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">` : `<div class="autocomplete-cover"></div>`;
+      const author = (item.author_name || []).slice(0,2).join(', ');
+      const pages = item.number_of_pages_median ? `${item.number_of_pages_median} pgs` : '';
+      const badge = badgeMap[item._source] ? `<span style="font-size:9px;background:var(--ink);color:var(--cream);border-radius:3px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle;">${badgeMap[item._source]}</span>` : '';
+      const help = item._source === 'manual' ? '<div class="autocomplete-pages">Usar esse título e preencher autor/capa manualmente</div>' : (pages ? `<div class="autocomplete-pages">${pages}</div>` : '');
+      return `<div class="autocomplete-item" data-index="${i}" onmousedown="selectAutocomplete(${i})">${cover}<div class="autocomplete-info"><div class="autocomplete-title">${esc(item.title)}${badge}</div><div class="autocomplete-author">${esc(author || 'Autor não informado')}</div>${help}</div></div>`;
+    }).join('');
+    results._items = list;
+    results.classList.add('open');
+  };
+
+  window.searchTitles = async function(q){
+    const results = document.getElementById('titleAutocomplete');
+    if (!results) return;
+    const query = clean(q);
+    if (query.length < 3) { results.classList.remove('open'); return; }
+    const key = norm(query);
+    const old = cached(key);
+    if (old) { window.renderAutocomplete(old); return; }
+    if (activeController) activeController.abort();
+    activeController = new AbortController();
+    const signal = activeController.signal;
+    results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">Buscando sem Google/Mercado Livre para evitar bloqueio...</div>`;
+    results.classList.add('open');
+    try {
+      const settled = await Promise.allSettled([searchOpenLibrary(query, signal), searchByIsbn(query, signal)]);
+      const merged = [];
+      for (const res of settled) if (res.status === 'fulfilled') for (const item of res.value) add(merged, item, query);
+      const items = finalItems(merged, query);
+      mem.set(key, items); writeCache(key, items);
+      window.renderAutocomplete(items);
+      console.info('[Minha Estante] busca sem 429/403', query, items);
+    } catch(e) {
+      if (e && e.name === 'AbortError') return;
+      window.renderAutocomplete([manualItem(query)]);
+    }
+  };
+
+  window.selectAutocomplete = function(index){
+    const results = document.getElementById('titleAutocomplete');
+    const item = results?._items && results._items[index];
+    if (!item) return;
+    const titleEl = document.getElementById('newTitle');
+    const authorEl = document.getElementById('newAuthor');
+    const pagesEl = document.getElementById('newPages');
+    if (titleEl) titleEl.value = item.title || '';
+    if (authorEl && (item.author_name || [])[0]) authorEl.value = (item.author_name || [])[0] || '';
+    if (pagesEl && item.number_of_pages_median) pagesEl.value = item.number_of_pages_median;
+    if (typeof guessGenreFromSubjects === 'function') guessGenreFromSubjects(item.subject || []);
+    try {
+      const author = (item.author_name || [])[0] || (authorEl ? authorEl.value : '');
+      const key = coverKey(item.title, author);
+      if (!state.covers) state.covers = {};
+      if (isHttp(item.cover_url)) state.covers[key] = item.cover_url;
+      else if (item.cover_i) state.covers[key] = `https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg`;
+      if (item.number_of_pages_median) { state.bookPages = state.bookPages || {}; state.bookPages[key] = item.number_of_pages_median; }
+      if (typeof saveState === 'function') saveState();
+    } catch(e) {}
+    results.classList.remove('open');
+  };
+
+  const oldGetBookCover = window.getBookCover || (typeof getBookCover === 'function' ? getBookCover : null);
+  window.getBookCover = function(book){
+    const url = oldGetBookCover ? oldGetBookCover(book) : null;
+    return isHttp(url) || String(url || '').startsWith('data:image/') ? url : null;
+  };
+
+  window.searchOpenLibraryCovers = async function(book){
+    const title = clean(book && (book.t || book.title));
+    const author = clean(book && (book.a || book.author));
+    const q = [title, author].filter(Boolean).join(' ');
+    const docs = await searchOpenLibrary(q, null);
+    const seen = new Set();
+    const covers = [];
+    const push = (url, source) => {
+      if (!isHttp(url)) return;
+      const u = url.replace('http://','https://');
+      if (seen.has(u)) return;
+      seen.add(u); covers.push({url:u, source});
+    };
+    finalItems(docs, q).forEach(item => {
+      if (item.cover_i) push(`https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg`, 'Open Library');
+      (item.isbn || []).slice(0, 8).forEach(isbn => push(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`, 'ISBN'));
+      push(item.cover_url, item._source === 'isbn' ? 'ISBN' : 'Open Library');
+    });
+    return covers.slice(0, 24);
+  };
+})();
+</script>
+
+
+
+<script>
+/* ==========================================================
+   BUSCA COM BACKEND VERCEL — versão definitiva
+   Use publicado na Vercel. Não abrir por file:///.
+   ========================================================== */
+(function(){
+  const API_ENDPOINT = '/api/books';
+  let backendAbort = null;
+
+  function isHttp(url){ return /^https?:\/\//i.test(String(url || '')); }
+  function cleanLocal(v){
+    return String(v || '')
+      .replace(/\b(e\s*book|ebook|kindle|capa comum|brochura|livro|sucesso do bookgram|edi[cç][aã]o portugu[eê]s[a]?|portugu[eê]s[a]?)\b/gi, ' ')
+      .replace(/\s*[:|–—-]\s*(uma romantasia.*|sucesso.*|e\s*book.*|ebook.*|kindle.*)$/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  function showMsg(text){
+    const results = document.getElementById('titleAutocomplete');
+    if (!results) return;
+    results.innerHTML = `<div style="padding:12px 16px;font-size:13px;color:var(--ink-soft);line-height:1.35;">${text}</div>`;
+    results.classList.add('open');
+  }
+
+  window.searchTitles = async function(q){
+    const results = document.getElementById('titleAutocomplete');
+    if (!results) return;
+    const raw = String(q || '').trim();
+    const query = cleanLocal(raw) || raw;
+    if (query.length < 2) { results.classList.remove('open'); return; }
+
+    if (backendAbort) backendAbort.abort();
+    backendAbort = new AbortController();
+    const signal = backendAbort.signal;
+
+    showMsg('Buscando livro no servidor.');
+    try {
+      const url = `${API_ENDPOINT}?q=${encodeURIComponent(query)}`;
+      const resp = await fetch(url, { signal, headers: { 'Accept': 'application/json' } });
+      if (!resp.ok) throw new Error('API indisponível');
+      const data = await resp.json();
+      const items = Array.isArray(data.items) ? data.items : [];
+      if (typeof window.renderAutocomplete === 'function') {
+        window.renderAutocomplete(items);
+      } else if (typeof renderAutocomplete === 'function') {
+        renderAutocomplete(items);
+      }
+      console.info('[Minha Estante] busca backend', query, items);
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;
+      const fallback = { title: query, author_name: [], number_of_pages_median: null, subject: [], isbn: [], cover_url: '', cover_i: null, _source: 'manual' };
+      if (typeof window.renderAutocomplete === 'function') window.renderAutocomplete([fallback]);
+      else showMsg('Servidor indisponível. Use a opção manual.');
+      console.warn('[Minha Estante] backend indisponível', err);
+    }
+  };
+
+  // Capa e páginas também passam pelo backend.
+  window.fetchBookMeta = async function(title, author){
+    const q = [title, author].filter(Boolean).join(' ').trim();
+    if (!q) return { cover: null, pages: null };
+    try {
+      const resp = await fetch(`${API_ENDPOINT}?q=${encodeURIComponent(q)}`, { headers: { 'Accept': 'application/json' } });
+      if (!resp.ok) throw new Error('API indisponível');
+      const data = await resp.json();
+      const item = (data.items || [])[0];
+      if (!item) return { cover: null, pages: null };
+      let cover = item.cover_url || '';
+      if (!isHttp(cover) && item.cover_i) cover = `https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg`;
+      return { cover: isHttp(cover) ? cover : null, pages: item.number_of_pages_median || null };
+    } catch(e) {
+      return { cover: null, pages: null };
+    }
+  };
+
+  window.searchOpenLibraryCovers = async function(book){
+    const title = book && (book.t || book.title || book.name);
+    const author = book && (book.a || book.author);
+    const q = [title, author].filter(Boolean).join(' ').trim();
+    if (!q) return [];
+    try {
+      const resp = await fetch(`${API_ENDPOINT}?q=${encodeURIComponent(q)}`, { headers: { 'Accept': 'application/json' } });
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      const seen = new Set();
+      const covers = [];
+      (data.items || []).forEach(item => {
+        const push = (url, source) => {
+          if (!isHttp(url)) return;
+          const clean = String(url).replace('http://','https://');
+          if (seen.has(clean)) return;
+          seen.add(clean);
+          covers.push({ url: clean, source });
+        };
+        push(item.cover_url, item._source || 'API');
+        if (item.cover_i) push(`https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg`, 'Open Library');
+        (item.isbn || []).slice(0, 6).forEach(isbn => push(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`, 'ISBN'));
+      });
+      return covers.slice(0, 24);
+    } catch(e) { return []; }
+  };
+})();
+</script>
+
+
+<script>
+/* FORÇA BUSCA V4 — precisa ser o ÚLTIMO script antes de </body> */
+(function(){
+  const API_ENDPOINT = '/api/books';
+  let aborter = null;
+  function msg(t){
+    const box = document.getElementById('titleAutocomplete');
+    if (!box) return;
+    box.innerHTML = '<div style="padding:12px 16px;font-size:13px;color:var(--ink-soft);line-height:1.35;">'+t+'</div>';
+    box.classList.add('open');
+  }
+  function fallbackManual(q){
+    return [{ title:q, author_name:[], number_of_pages_median:null, subject:[], isbn:[], cover_url:'', cover_i:null, _source:'manual' }];
+  }
+  function render(items){
+    if (typeof window.renderAutocomplete === 'function') return window.renderAutocomplete(items);
+    if (typeof renderAutocomplete === 'function') return renderAutocomplete(items);
+  }
+  window.searchTitles = async function(q){
+    const box = document.getElementById('titleAutocomplete');
+    if (!box) return;
+    const query = String(q || '').trim();
+    if (query.length < 2) { box.classList.remove('open'); return; }
+    if (aborter) aborter.abort();
+    aborter = new AbortController();
+    msg('Buscando no servidor v4...');
+    try {
+      const r = await fetch(API_ENDPOINT + '?q=' + encodeURIComponent(query), { signal: aborter.signal, headers:{Accept:'application/json'} });
+      if (!r.ok) throw new Error('API ' + r.status);
+      const data = await r.json();
+      let items = Array.isArray(data.items) ? data.items : [];
+      if (!items.length) items = fallbackManual(query);
+      render(items);
+      console.info('[Minha Estante] BACKEND V4', data.version, query, items);
+    } catch(e){
+      if (e && e.name === 'AbortError') return;
+      console.warn('[Minha Estante] BACKEND V4 falhou', e);
+      render(fallbackManual(query));
+    }
+  };
+  window.fetchBookMeta = async function(title, author){
+    const q = [title, author].filter(Boolean).join(' ').trim();
+    if (!q) return {cover:null, pages:null};
+    try {
+      const r = await fetch(API_ENDPOINT + '?q=' + encodeURIComponent(q), {headers:{Accept:'application/json'}});
+      const data = await r.json();
+      const item = (data.items || [])[0] || {};
+      let cover = item.cover_url || '';
+      if (!/^https?:\/\//i.test(cover) && item.cover_i) cover = 'https://covers.openlibrary.org/b/id/' + item.cover_i + '-L.jpg';
+      return {cover:/^https?:\/\//i.test(cover) ? cover : null, pages:item.number_of_pages_median || null};
+    } catch(e){ return {cover:null, pages:null}; }
+  };
+})();
 </script>
 
 </body>
