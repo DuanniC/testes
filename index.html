@@ -10,11 +10,26 @@
 <meta name="mobile-web-app-capable" content="yes">
 <title>Minha Estante ✦</title>
 <script>
-/* AJUSTE DUANNI — Google Books reativado.
-   O bloqueio global anterior fazia toda busca em googleapis retornar vazio,
-   então títulos e capas quase nunca eram encontrados. Agora o controle de 429
-   fica nas funções de busca, com fila, cache e retry — sem bloquear a API. */
-window.__BLOCK_GOOGLE_BOOKS_429__ = false;
+/* BLOQUEIO ANTI-429: impede qualquer chamada antiga ao Google Books.
+   O Google Books estava retornando 429 por excesso de requisições.
+   A busca automática de capas deve usar Open Library/cache, não googleapis. */
+(function(){
+  if (window.__BLOCK_GOOGLE_BOOKS_429__) return;
+  window.__BLOCK_GOOGLE_BOOKS_429__ = true;
+  const emptyBooksResponse = () => new Response(JSON.stringify({ totalItems: 0, items: [] }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const originalFetch = window.fetch ? window.fetch.bind(window) : null;
+  window.fetch = function(input, init){
+    const url = typeof input === 'string' ? input : (input && input.url) || '';
+    if (url && url.includes('www.googleapis.com/books/v1/volumes')) {
+      console.warn('[capas] Google Books bloqueado para evitar erro 429:', url);
+      return Promise.resolve(emptyBooksResponse());
+    }
+    return originalFetch ? originalFetch(input, init) : Promise.reject(new Error('fetch indisponível'));
+  };
+})();
 </script>
 
 
@@ -2748,6 +2763,17 @@ window.__BLOCK_GOOGLE_BOOKS_429__ = false;
   }
   .lido-timeline-stars .empty-star { color: rgba(42, 36, 32, 0.18); }
 
+  .lido-timeline-series {
+    font-size: 9px;
+    color: var(--ink-soft);
+    line-height: 1.15;
+    padding: 0 1px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
   @media (max-width: 600px) {
     .lido-month-row {
       flex-direction: column;
@@ -3303,6 +3329,144 @@ textarea,
   color: var(--cream);
 }
 
+/* ========= OFFLINE BANNER ========= */
+.offline-banner {
+  background: #f0e0b0;
+  color: var(--ink);
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  border-radius: 0 0 14px 14px;
+  margin: 0 16px 4px;
+  animation: slideDown 0.3s ease;
+}
+
+/* ========= PROFILE MODAL ========= */
+.profile-year-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--cream-dark);
+}
+.profile-year-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+.profile-year-select {
+  background: var(--cream-dark);
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.profile-year-select:focus { border-color: var(--ink); }
+
+.profile-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.profile-stat-card {
+  background: var(--cream-dark);
+  border-radius: 16px;
+  padding: 14px 12px;
+  text-align: center;
+}
+.profile-stat-number {
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--ink);
+  letter-spacing: -0.5px;
+}
+.profile-stat-label {
+  font-size: 10px;
+  color: var(--ink-soft);
+  margin-top: 5px;
+  letter-spacing: 0.3px;
+  font-weight: 500;
+}
+.profile-block-title {
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: 16px;
+  color: var(--ink-soft);
+  margin: 16px 0 8px;
+}
+.profile-row {
+  background: rgba(255,255,255,0.5);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.profile-row strong { font-weight: 600; flex-shrink: 0; }
+.profile-row span { opacity: 0.8; }
+
+.profile-retrospective {
+  background: linear-gradient(135deg, var(--cream-dark), rgba(255,255,255,0.6));
+  border-radius: 18px;
+  padding: 16px;
+  margin: 12px 0 4px;
+  border: 1px solid rgba(255,255,255,0.5);
+}
+.profile-retro-year {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 300;
+  letter-spacing: -1px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+.profile-retro-line {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+.profile-empty {
+  text-align: center;
+  padding: 24px 0;
+  font-family: 'Instrument Serif', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+/* ========= SERIES BADGE ========= */
+.series-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: rgba(42,36,32,0.07);
+  color: var(--ink-soft);
+  margin-top: 3px;
+}
+
 </style>
 </head>
 <body>
@@ -3385,6 +3549,9 @@ textarea,
 -- ALTER TABLE books ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id);
 -- UPDATE books SET user_id = auth.uid() WHERE user_id IS NULL;
 -- ALTER TABLE books ADD COLUMN IF NOT EXISTS fav_rank int;
+-- ALTER TABLE books ADD COLUMN IF NOT EXISTS series_type text;
+-- ALTER TABLE books ADD COLUMN IF NOT EXISTS series_name text;
+-- ALTER TABLE books ADD COLUMN IF NOT EXISTS series_volume int;
 
 -- PARA BANCO NOVO, rode tudo abaixo:
 create table books (
@@ -3401,6 +3568,9 @@ create table books (
   pages_total int,
   pages_current int default 0,
   fav_rank int,
+  series_type text,
+  series_name text,
+  series_volume int,
   created_at timestamptz default now()
 );
 
@@ -3468,6 +3638,10 @@ create policy "acesso total genres" on genres
 </div>
 
 <div class="app">
+  <!-- Banner offline -->
+  <div class="offline-banner" id="offlineBanner" style="display:none;">
+    <span>📡 Sem conexão — exibindo dados salvos</span>
+  </div>
   <div class="header">
     <div class="logo-mark">Minha estante</div>
     <div class="header-actions">
@@ -3491,6 +3665,7 @@ create policy "acesso total genres" on genres
     <div class="menu" id="menu">
       <button onclick="openAddBook()">✦ Adicionar livro</button>
       
+      <button onclick="openProfileModal()">☺ Meu Perfil</button>
       <button onclick="openGenresModal()">✿ Gerenciar gêneros</button>
       <button onclick="forceSync()">↻ Sincronizar agora</button>
       <button onclick="exportHtml()">⬇ Baixar backup (HTML)</button>
@@ -3593,6 +3768,25 @@ create policy "acesso total genres" on genres
       <label class="form-label">Total de páginas (opcional)</label>
       <input type="number" class="form-input" id="newPages" min="1" placeholder="deixa vazio pra buscar automático">
     </div>
+    <div class="form-group">
+      <label class="form-label">Sequência</label>
+      <select class="form-select" id="newSeriesType">
+        <option value="unico">Livro único</option>
+        <option value="duologia">Duologia</option>
+        <option value="trilogia">Trilogia</option>
+        <option value="saga">Saga</option>
+      </select>
+    </div>
+
+    <div class="form-group series-fields" id="newSeriesFields" style="display:none;">
+      <label class="form-label">Associar à sequência</label>
+      <select class="form-select" id="newSeriesNameSelect"></select>
+      <input type="text" class="form-input" id="newSeriesName" placeholder="Nome da sequência, se for nova" style="margin-top:8px;">
+    </div>
+    <div class="form-group series-fields" id="newSeriesVolumeGroup" style="display:none;">
+      <label class="form-label">Volume</label>
+      <select class="form-select" id="newSeriesVolume"></select>
+    </div>
 
     <div class="amazon-divider" id="amazonSection">
       <div class="amazon-divider-line"><span>ou cole um link da Amazon</span></div>
@@ -3663,6 +3857,25 @@ create policy "acesso total genres" on genres
     <div class="form-group">
       <label class="form-label">Gênero</label>
       <select class="form-select" id="editGenre"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Sequência</label>
+      <select class="form-select" id="editSeriesType">
+        <option value="unico">Livro único</option>
+        <option value="duologia">Duologia</option>
+        <option value="trilogia">Trilogia</option>
+        <option value="saga">Saga</option>
+      </select>
+    </div>
+
+    <div class="form-group series-fields" id="editSeriesFields" style="display:none;">
+      <label class="form-label">Associar à sequência</label>
+      <select class="form-select" id="editSeriesNameSelect"></select>
+      <input type="text" class="form-input" id="editSeriesName" placeholder="Nome da sequência, se for nova" style="margin-top:8px;">
+    </div>
+    <div class="form-group series-fields" id="editSeriesVolumeGroup" style="display:none;">
+      <label class="form-label">Volume</label>
+      <select class="form-select" id="editSeriesVolume"></select>
     </div>
     
     <div style="font-family: 'Instrument Serif', serif; font-style: italic; font-size: 16px; color: var(--ink-soft); margin: 18px 0 10px;">
@@ -3828,6 +4041,25 @@ create policy "acesso total genres" on genres
     </div>
     <p class="modal-sub" id="sessionsDaySub">—</p>
     <div id="sessionsDayContainer"></div>
+  </div>
+</div>
+
+<!-- MODAL MEU PERFIL -->
+<div class="modal-backdrop" id="profileModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <h2 class="modal-title"><em>Meu</em> Perfil</h2>
+      <button class="modal-close" onclick="closeProfileModal()">×</button>
+    </div>
+    <p class="modal-sub">seu histórico de leitura ✦</p>
+    <div class="profile-year-bar">
+      <label class="profile-year-label">Período</label>
+      <select id="profileYearSelectModal" onchange="renderProfileSummaryModal()" class="profile-year-select">
+        <option value="">Todos os anos</option>
+      </select>
+    </div>
+    <div id="profileSummaryContent"></div>
   </div>
 </div>
 
@@ -4503,6 +4735,9 @@ function bookToDb(book) {
     pages_current: book.pagesCurrent || 0,
     cover_url: coverForDb,
     fav_rank: (typeof book.favRank === 'number' && book.favRank > 0) ? book.favRank : null,
+    series_type: book.seriesType && book.seriesType !== 'unico' ? book.seriesType : null,
+    series_name: book.seriesName || null,
+    series_volume: book.seriesVolume || null,
     user_id: currentUser ? currentUser.id : null,
   };
 }
@@ -4525,6 +4760,9 @@ function bookFromDb(row) {
     coverLocked: !!row.cover_url,
     coverStatus: row.cover_url ? "saved" : undefined,
     favRank: (typeof row.fav_rank === 'number' && row.fav_rank > 0) ? row.fav_rank : undefined,
+    seriesType: row.series_type || 'unico',
+    seriesName: row.series_name || undefined,
+    seriesVolume: row.series_volume || undefined,
     _coverFromDb: row.cover_url || null, // temporário — consumido no sync
   };
 }
@@ -4592,9 +4830,12 @@ async function pushBook(book) {
       // Se o erro mencionar fav_rank, é coluna nova ainda não rodada no banco —
       // retira o campo e tenta de novo pra não quebrar o sync.
       const msg = String(innerErr && innerErr.message || '');
-      if (msg.includes('fav_rank')) {
+      if (msg.includes('fav_rank') || msg.includes('series_type') || msg.includes('series_name') || msg.includes('series_volume')) {
         const fallback = { ...data };
         delete fallback.fav_rank;
+        delete fallback.series_type;
+        delete fallback.series_name;
+        delete fallback.series_volume;
         await supabaseFetch("books", {
           method: 'POST',
           body: JSON.stringify(fallback),
@@ -4625,9 +4866,12 @@ async function pushNewBook(book) {
       });
     } catch (innerErr) {
       const msg = String(innerErr && innerErr.message || '');
-      if (msg.includes('fav_rank')) {
+      if (msg.includes('fav_rank') || msg.includes('series_type') || msg.includes('series_name') || msg.includes('series_volume')) {
         const fallback = { ...data };
         delete fallback.fav_rank;
+        delete fallback.series_type;
+        delete fallback.series_name;
+        delete fallback.series_volume;
         result = await supabaseFetch("books", {
           method: 'POST',
           body: JSON.stringify(fallback),
@@ -5696,11 +5940,13 @@ function renderGenres() {
         const stars = book.rating
           ? '★'.repeat(book.rating) + '<span class="empty-star">' + '☆'.repeat(5 - book.rating) + '</span>'
           : '';
+        const seriesLabel = getManualSeriesLabel(book);
         html += `
           <div class="lido-timeline-item" onclick="openEditModal(${book.id})">
             <div class="lido-timeline-cover" id="${coverId}">${coverFallbackHTML(book, book.g)}</div>
             <div class="lido-timeline-title">${escapeHtml(book.t)}</div>
             ${stars ? `<div class="lido-timeline-stars">${stars}</div>` : ''}
+            ${seriesLabel ? `<div class="lido-timeline-series">${seriesLabel}</div>` : ''}
           </div>
         `;
       });
@@ -5722,11 +5968,13 @@ function renderGenres() {
         const stars = book.rating
           ? '★'.repeat(book.rating) + '<span class="empty-star">' + '☆'.repeat(5 - book.rating) + '</span>'
           : '';
+        const seriesLabel = getManualSeriesLabel(book);
         html += `
           <div class="lido-timeline-item" onclick="openEditModal(${book.id})">
             <div class="lido-timeline-cover" id="${coverId}">${coverFallbackHTML(book, book.g)}</div>
             <div class="lido-timeline-title">${escapeHtml(book.t)}</div>
             ${stars ? `<div class="lido-timeline-stars">${stars}</div>` : ''}
+            ${seriesLabel ? `<div class="lido-timeline-series">${seriesLabel}</div>` : ''}
           </div>
         `;
       });
@@ -6264,6 +6512,18 @@ function reorderFavorites(sourceId, targetId) {
   renderAll();
 }
 
+function getManualSeriesLabel(book) {
+  if (!book) return '';
+  const type = String(book.seriesType || '').trim().toLowerCase();
+  if (!type || type === 'unico' || type === 'livro único') return '';
+  const labels = { duologia: 'Duologia', trilogia: 'Trilogia', saga: 'Saga' };
+  const label = labels[type];
+  if (!label) return '';
+  const name = book.seriesName ? escapeHtml(book.seriesName) : label;
+  const volume = book.seriesVolume ? ` · vol. ${book.seriesVolume}` : '';
+  return `${name}${volume}`;
+}
+
 function renderBookItemHTML(book, showGenre) {
   const g = GENRES[book.g];
   let statusBtn = "";
@@ -6291,7 +6551,7 @@ function renderBookItemHTML(book, showGenre) {
     : '';
   
   return `
-    <div class="book-item">
+    <div class="book-item" data-book-id="${book.id}">
       <div class="book-info">
         <div class="book-title-row"><div class="book-title">${escapeHtml(book.t)}</div>${favMark}</div>
         <div class="book-author">${escapeHtml(book.a)}</div>
@@ -6985,13 +7245,20 @@ function confirmStartReading() {
   closeReadingModal();
   document.getElementById("result").classList.remove("show");
   currentBook = null;
-  
-  if (currentGenre) {
-    renderWheel(currentGenre);
-    renderBookList(currentGenre);
-    updateModalSub();
-  }
-  renderAll();
+
+  state.filter = "reading";
+  state.selectedYear = null;
+  updateHero("reading");
+  document.querySelectorAll(".tab").forEach(t => {
+    t.classList.toggle("active", t.dataset.filter === "reading");
+  });
+  saveState();
+
+  const modalEl = document.getElementById("modal");
+  if (modalEl) modalEl.classList.remove("open");
+  document.body.style.overflow = "";
+  currentGenre = null;
+  refreshAfterBookChange();
 }
 
 // ============ EDIÇÃO / FINALIZAÇÃO ============
@@ -7022,6 +7289,9 @@ function openEditModal(bookId) {
   document.getElementById("editEndDate").value = book.endDate || todayISO();
   document.getElementById("editPagesCurrent").value = book.pagesCurrent || '';
   document.getElementById("editPagesTotal").value = book.pagesTotal || '';
+  const editSeriesTypeEl = document.getElementById("editSeriesType");
+  if (editSeriesTypeEl) editSeriesTypeEl.value = book.seriesType || "unico";
+  setupSeriesControls("edit", book);
   
   const info = book.startDate 
     ? `<strong>Começou em:</strong> ${formatDate(book.startDate)}` 
@@ -7540,12 +7810,18 @@ function applyCommonEditFields(book) {
   const newTitle = document.getElementById("editTitle").value.trim();
   const newAuthor = document.getElementById("editAuthor").value.trim();
   const newGenre = document.getElementById("editGenre").value;
+  const seriesTypeEl = document.getElementById("editSeriesType");
+  const newSeriesType = seriesTypeEl ? seriesTypeEl.value : "unico";
+  const seriesData = getSeriesFormData("edit", newSeriesType);
   const pagesCurrent = parseInt(document.getElementById("editPagesCurrent").value);
   const pagesTotal = parseInt(document.getElementById("editPagesTotal").value);
   
   if (newTitle) book.t = newTitle;
   if (newAuthor) book.a = newAuthor;
   if (newGenre && GENRES[newGenre]) book.g = newGenre;
+  book.seriesType = newSeriesType && newSeriesType !== "unico" ? newSeriesType : "unico";
+  book.seriesName = seriesData.seriesName;
+  book.seriesVolume = seriesData.seriesVolume;
 
   // Se título/autor mudarem, a capa continua presa ao livro, não ao texto antigo.
   if (previousCover) setBookCover(book, previousCover);
@@ -7574,8 +7850,7 @@ function saveEditOnly() {
   pushBook(book);
   
   closeEditModal();
-  if (currentGenre) { renderWheel(currentGenre); renderBookList(currentGenre); updateModalSub(); }
-  renderAll();
+  refreshAfterBookChange();
 }
 
 function confirmFinishReading() {
@@ -7596,8 +7871,7 @@ function confirmFinishReading() {
   pushBook(book);
   
   closeEditModal();
-  if (currentGenre) { renderWheel(currentGenre); renderBookList(currentGenre); updateModalSub(); }
-  renderAll();
+  refreshAfterBookChange();
 }
 
 function confirmAbandon() {
@@ -7682,6 +7956,16 @@ function renderBookList(genreKey) {
   container.innerHTML = html;
 }
 
+function refreshAfterBookChange() {
+  const modalOpen = document.getElementById("modal")?.classList.contains("open");
+  if (modalOpen) {
+    renderWheel(currentGenre);
+    renderBookList(currentGenre);
+    updateModalSub();
+  }
+  renderAll();
+}
+
 function deleteBook(id) {
   const book = getBookById(id);
   if (!book) return;
@@ -7763,6 +8047,85 @@ window.addEventListener("load", () => {
   // Chamar renderAll() aqui causava o flash de 1 segundo mostrando dados locais desatualizados.
 });
 
+
+// ============ SERIES / SEQUÊNCIA MANUAL ============
+function getSeriesGroups(currentBookId) {
+  const groups = [];
+  const seen = new Set();
+  (state.books || []).forEach(book => {
+    if (!book || book.id === currentBookId) return;
+    const type = String(book.seriesType || 'unico').toLowerCase();
+    if (!type || type === 'unico') return;
+    const name = (book.seriesName || book.t || '').trim();
+    if (!name) return;
+    const key = `${type}::${name.toLowerCase()}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    groups.push({ type, name });
+  });
+  return groups.sort((a,b) => a.name.localeCompare(b.name, 'pt-BR'));
+}
+
+function fillSeriesVolume(prefix, type, selectedVolume) {
+  const volumeEl = document.getElementById(`${prefix}SeriesVolume`);
+  if (!volumeEl) return;
+  const limits = { duologia: 2, trilogia: 3, saga: 20 };
+  const max = limits[type] || 10;
+  volumeEl.innerHTML = Array.from({ length: max }, (_, i) => {
+    const n = i + 1;
+    return `<option value="${n}"${Number(selectedVolume) === n ? ' selected' : ''}>Volume ${n}</option>`;
+  }).join('');
+}
+
+function fillSeriesNameSelect(prefix, type, selectedName, currentBookId) {
+  const selectEl = document.getElementById(`${prefix}SeriesNameSelect`);
+  const inputEl = document.getElementById(`${prefix}SeriesName`);
+  if (!selectEl || !inputEl) return;
+  const groups = getSeriesGroups(currentBookId).filter(g => g.type === type);
+  const selected = (selectedName || '').trim();
+  const hasSelected = selected && groups.some(g => g.name.toLowerCase() === selected.toLowerCase());
+  selectEl.innerHTML = [
+    `<option value="">Criar nova sequência</option>`,
+    ...groups.map(g => `<option value="${escapeHtml(g.name)}"${hasSelected && g.name.toLowerCase() === selected.toLowerCase() ? ' selected' : ''}>${escapeHtml(g.name)}</option>`)
+  ].join('');
+  inputEl.value = hasSelected ? '' : selected;
+  inputEl.style.display = selectEl.value ? 'none' : 'block';
+  selectEl.onchange = () => {
+    inputEl.style.display = selectEl.value ? 'none' : 'block';
+    if (selectEl.value) inputEl.value = '';
+  };
+}
+
+function setupSeriesControls(prefix, book) {
+  const typeEl = document.getElementById(`${prefix}SeriesType`);
+  const fieldsEl = document.getElementById(`${prefix}SeriesFields`);
+  const volumeGroupEl = document.getElementById(`${prefix}SeriesVolumeGroup`);
+  if (!typeEl || !fieldsEl || !volumeGroupEl) return;
+  const update = () => {
+    const type = typeEl.value || 'unico';
+    const show = type !== 'unico';
+    fieldsEl.style.display = show ? 'block' : 'none';
+    volumeGroupEl.style.display = show ? 'block' : 'none';
+    if (show) {
+      fillSeriesNameSelect(prefix, type, book?.seriesName || '', book?.id);
+      fillSeriesVolume(prefix, type, book?.seriesVolume || 1);
+    }
+  };
+  typeEl.onchange = () => { book = null; update(); };
+  update();
+}
+
+function getSeriesFormData(prefix, type) {
+  if (!type || type === 'unico') return { seriesName: undefined, seriesVolume: undefined };
+  const selectName = document.getElementById(`${prefix}SeriesNameSelect`)?.value.trim() || '';
+  const typedName = document.getElementById(`${prefix}SeriesName`)?.value.trim() || '';
+  const volume = parseInt(document.getElementById(`${prefix}SeriesVolume`)?.value || '1');
+  return {
+    seriesName: selectName || typedName || undefined,
+    seriesVolume: Number.isFinite(volume) && volume > 0 ? volume : 1,
+  };
+}
+
 // ============ ADD BOOK ============
 function openAddBook() {
   closeMenu();
@@ -7773,6 +8136,9 @@ function openAddBook() {
   document.getElementById("newTitle").value = "";
   document.getElementById("newAuthor").value = "";
   document.getElementById("newPages").value = "";
+  const newSeriesTypeEl = document.getElementById("newSeriesType");
+  if (newSeriesTypeEl) newSeriesTypeEl.value = "unico";
+  setupSeriesControls("new");
   const amazonUrlEl = document.getElementById("amazonUrl");
   if (amazonUrlEl) amazonUrlEl.value = "";
   const amazonStatusEl = document.getElementById("amazonStatus");
@@ -8409,6 +8775,9 @@ async function addBook() {
   const author = document.getElementById("newAuthor").value.trim();
   const genre = document.getElementById("newGenre").value;
   const pagesInput = parseInt(document.getElementById("newPages").value);
+  const seriesTypeEl = document.getElementById("newSeriesType");
+  const seriesType = seriesTypeEl ? seriesTypeEl.value : "unico";
+  const seriesData = getSeriesFormData("new", seriesType);
   
   if (!title) { alert("Coloca o título ✦"); return; }
   if (!author) { alert("Coloca o autor ✦"); return; }
@@ -8420,6 +8789,9 @@ async function addBook() {
     t: title, a: author, g: genre,
     status: "pendente", favorite: false,
     pagesCurrent: 0,
+    seriesType: seriesType && seriesType !== "unico" ? seriesType : "unico",
+    seriesName: seriesData.seriesName,
+    seriesVolume: seriesData.seriesVolume,
   };
 
   if (!isNaN(pagesInput) && pagesInput > 0) {
@@ -11131,707 +11503,460 @@ function renderProfileSummary() {
 
 </script>
 
-
-
-
+<!-- =====================================================
+     MELHORIAS v8+ — Offline, Perfil expandido, Sequências
+     ===================================================== -->
 <script>
-/* ==========================================================
-   AJUSTE FINAL DUANNI — Busca de livros/capas mais forte
-   Estratégia: Google Books + Open Library + BrasilAPI + ML,
-   com cache, throttle, dedupe, ranking menos rígido e fallback.
-   ========================================================== */
-(function(){
-  const GB_MIN_INTERVAL = 900;
-  let gbLastCall = 0;
-  const localSearchCache = new Map();
+(function() {
+  'use strict';
 
-  const clean = (v) => String(v || '').trim();
-  const norm = (v) => clean(v)
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[“”"'´`]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const tokens = (v) => norm(v).split(' ').filter(t => t.length > 1 && !['livro','volume','vol','edicao','edição','de','do','da','dos','das','a','o','as','os','um','uma','e','em','no','na','para','por','com'].includes(t));
-  const wait = (ms) => new Promise(r => setTimeout(r, ms));
-
-  async function safeJson(url, opts = {}, timeout = 9000) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeout);
-    const signal = opts.signal || ctrl.signal;
-    try {
-      const resp = await fetch(url, { ...opts, signal, headers: { 'Accept': 'application/json', ...(opts.headers || {}) } });
-      if (!resp.ok) return null;
-      return await resp.json();
-    } catch(e) {
-      if (e && e.name === 'AbortError') throw e;
-      return null;
-    } finally {
-      clearTimeout(timer);
+  // ============================================================
+  // 1. DETECÇÃO DE CONEXÃO E BANNER OFFLINE
+  // ============================================================
+  function updateOfflineBanner() {
+    const banner = document.getElementById('offlineBanner');
+    if (!banner) return;
+    if (!navigator.onLine) {
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
     }
   }
 
-  async function googleJson(url, signal, retries = 2) {
-    const elapsed = Date.now() - gbLastCall;
-    if (elapsed < GB_MIN_INTERVAL) await wait(GB_MIN_INTERVAL - elapsed);
-    gbLastCall = Date.now();
-    for (let i = 0; i <= retries; i++) {
-      try {
-        const resp = await fetch(url, { signal, headers: { 'Accept': 'application/json' } });
-        if (resp.status === 429) { await wait(1600 * Math.pow(2, i)); continue; }
-        if (!resp.ok) return null;
-        return await resp.json();
-      } catch(e) {
-        if (e && e.name === 'AbortError') throw e;
-        await wait(500 * (i + 1));
-      }
-    }
-    return null;
+  window.addEventListener('online',  updateOfflineBanner);
+  window.addEventListener('offline', updateOfflineBanner);
+  // Checa ao carregar
+  document.addEventListener('DOMContentLoaded', updateOfflineBanner);
+  setTimeout(updateOfflineBanner, 800);
+
+  // ============================================================
+  // 2. MODAL "MEU PERFIL" — versão expandida
+  // ============================================================
+
+  // Abre o modal e renderiza
+  window.openProfileModal = function() {
+    closeMenu();
+    const modal = document.getElementById('profileModal');
+    if (!modal) return;
+    populateProfileYearSelectModal();
+    renderProfileSummaryModal();
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeProfileModal = function() {
+    const modal = document.getElementById('profileModal');
+    if (modal) modal.classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
+  function populateProfileYearSelectModal() {
+    const sel = document.getElementById('profileYearSelectModal');
+    if (!sel) return;
+    const current = sel.value;
+    const readBooks = (state.books || []).filter(b => b.status === 'lido');
+    const years = [...new Set(readBooks.map(b => {
+      const d = b.endDate || '';
+      const y = String(d).slice(0, 4);
+      return /^\d{4}$/.test(y) ? y : null;
+    }).filter(Boolean))].sort((a, b) => Number(b) - Number(a));
+
+    sel.innerHTML = '<option value="">Todos os anos</option>' +
+      years.map(y => `<option value="${y}"${current === y ? ' selected' : ''}>${y}</option>`).join('');
   }
 
-  function googleCover(info) {
-    const img = (info && info.imageLinks) || {};
-    const url = img.extraLarge || img.large || img.medium || img.small || img.thumbnail || img.smallThumbnail || '';
-    return url ? url.replace('http://', 'https://').replace(/zoom=1/g, 'zoom=0').replace(/[?&]edge=curl/g, '') : '';
-  }
+  window.renderProfileSummaryModal = function() {
+    const box = document.getElementById('profileSummaryContent');
+    if (!box) return;
 
-  function idsFromGoogle(info) {
-    return ((info && info.industryIdentifiers) || []).map(x => clean(x.identifier)).filter(Boolean);
-  }
+    const sel = document.getElementById('profileYearSelectModal');
+    const selectedYear = sel ? sel.value : '';
 
-  function scoreItem(item, query) {
-    const qn = norm(query);
-    const title = norm(item.title);
-    const author = norm((item.author_name || []).join(' '));
-    const qt = tokens(query);
-    let score = 0;
-    if (title === qn) score += 180;
-    if (title.includes(qn) || qn.includes(title)) score += 90;
-    const hitsTitle = qt.filter(t => title.includes(t)).length;
-    const hitsAuthor = qt.filter(t => author.includes(t)).length;
-    score += hitsTitle * 35 + hitsAuthor * 18;
-    if (item.cover_url || item.cover_i) score += 25;
-    if ((item.isbn || []).length) score += 18;
-    if (item.number_of_pages_median) score += 10;
-    if (item._source === 'google') score += 18;
-    if (item._source === 'isbn') score += 40;
-    if (item._source === 'ol') score += 8;
-    if (item._language === 'pt' || (Array.isArray(item._language) && item._language.includes('por'))) score += 18;
-    return score;
-  }
+    const allBooks = state.books || [];
+    const allRead = allBooks.filter(b => b.status === 'lido');
 
-  function addDedupe(list, item, query) {
-    if (!item || !item.title) return;
-    item.title = clean(item.title);
-    item.author_name = Array.isArray(item.author_name) ? item.author_name.filter(Boolean) : (item.author_name ? [item.author_name] : []);
-    item.isbn = Array.isArray(item.isbn) ? item.isbn.filter(Boolean) : [];
-    item._score = Math.max(item._score || 0, scoreItem(item, query));
-    const key = norm(item.title) + '|' + norm((item.author_name || []).slice(0,1).join(' '));
-    const existing = list.find(x => (norm(x.title) + '|' + norm((x.author_name || []).slice(0,1).join(' '))) === key);
-    if (existing) {
-      if (!existing.cover_url && item.cover_url) existing.cover_url = item.cover_url;
-      if (!existing.cover_i && item.cover_i) existing.cover_i = item.cover_i;
-      if (!existing.number_of_pages_median && item.number_of_pages_median) existing.number_of_pages_median = item.number_of_pages_median;
-      existing.isbn = [...new Set([...(existing.isbn || []), ...(item.isbn || [])])];
-      existing._score = Math.max(existing._score || 0, item._score || 0);
-      if (existing._source !== 'google' && item._source === 'google') existing._source = 'google';
+    // Filtra por ano se selecionado
+    const readBooks = selectedYear
+      ? allRead.filter(b => String(b.endDate || '').slice(0, 4) === selectedYear)
+      : allRead;
+
+    if (allRead.length === 0) {
+      box.innerHTML = `<div class="profile-empty">Nenhum livro marcado como já lido ainda. Comece a registrar suas leituras ✦</div>`;
       return;
     }
-    list.push(item);
-  }
 
-  async function searchGoogle(query, signal) {
-    const fields = 'fields=items(volumeInfo(title,authors,imageLinks,pageCount,categories,industryIdentifiers,language,publishedDate,publisher))';
-    const q = clean(query);
-    const quoted = '"' + q + '"';
-    const urls = [
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(quoted)}&maxResults=20&printType=books&langRestrict=pt&country=BR&orderBy=relevance&${fields}`,
-      `https://www.googleapis.com/books/v1/volumes?q=intitle:${encodeURIComponent(q)}&maxResults=20&printType=books&langRestrict=pt&orderBy=relevance&${fields}`,
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=25&printType=books&country=BR&orderBy=relevance&${fields}`,
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=25&printType=books&orderBy=relevance&${fields}`
-    ];
-    const out = [];
-    for (const url of urls) {
-      const data = await googleJson(url, signal);
-      for (const raw of ((data && data.items) || [])) {
-        const v = raw.volumeInfo || {};
-        addDedupe(out, {
-          title: v.title,
-          author_name: v.authors || [],
-          number_of_pages_median: v.pageCount || null,
-          subject: v.categories || [],
-          isbn: idsFromGoogle(v),
-          isbn13: (idsFromGoogle(v).find(x => x.length === 13) || null),
-          isbn10: (idsFromGoogle(v).find(x => x.length === 10) || null),
-          cover_url: googleCover(v),
-          cover_i: null,
-          _source: 'google',
-          _language: v.language,
-          _publisher: v.publisher || ''
-        }, query);
-      }
-    }
-    return out;
-  }
+    // ── Cálculos ──
+    const totalBooks = readBooks.length;
+    const totalPages = readBooks.reduce((s, b) => s + (parseInt(b.pagesTotal) || 0), 0);
+    const avgPages = totalBooks ? Math.round(totalPages / totalBooks) : 0;
 
-  async function searchOpenLibrary(query, signal) {
-    const fields = 'title,author_name,cover_i,number_of_pages_median,subject,isbn,language,edition_count,publisher';
-    const urls = [
-      `https://openlibrary.org/search.json?title=${encodeURIComponent(query)}&limit=40&fields=${fields}`,
-      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=40&fields=${fields}`,
-      `https://openlibrary.org/search.json?title=${encodeURIComponent(query)}&language=por&limit=40&fields=${fields}`
-    ];
-    const out = [];
-    for (const url of urls) {
-      const data = await safeJson(url, { signal });
-      for (const d of ((data && data.docs) || [])) {
-        addDedupe(out, {
-          ...d,
-          author_name: d.author_name || [],
-          cover_url: null,
-          _source: 'ol',
-          _language: d.language || [],
-          _publisher: (d.publisher || []).join(' ')
-        }, query);
-      }
-    }
-    return out;
-  }
-
-  async function searchMercadoLivre(query, signal) {
-    const urls = [
-      `https://api.mercadolibre.com/sites/MLB/search?category=MLB1196&q=${encodeURIComponent(query)}&limit=30`,
-      `https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent('livro ' + query)}&limit=30`
-    ];
-    const out = [];
-    for (const url of urls) {
-      const data = await safeJson(url, { signal });
-      for (const p of ((data && data.results) || [])) {
-        const img = p.thumbnail ? p.thumbnail.replace('-I.', '-O.').replace('http://', 'https://') : null;
-        addDedupe(out, { title: p.title, author_name: [], isbn: [], number_of_pages_median: null, cover_url: img, cover_i: null, _source: 'ml' }, query);
-      }
-    }
-    return out;
-  }
-
-  async function searchBrasilApi(query, signal) {
-    const isbn = clean(query).replace(/[^0-9X]/gi, '');
-    if (!(isbn.length === 10 || isbn.length === 13)) return [];
-    const data = await safeJson(`https://brasilapi.com.br/api/isbn/v1/${isbn}`, { signal });
-    if (!data || !data.title) return [];
-    return [{ title: data.title, author_name: data.authors || [], number_of_pages_median: data.page_count || null, subject: data.subjects || [], isbn: [isbn], isbn13: isbn.length === 13 ? isbn : null, isbn10: isbn.length === 10 ? isbn : null, cover_url: null, cover_i: null, _source: 'isbn', _score: 5000 }];
-  }
-
-  function finalSort(items, query) {
-    return items
-      .map(x => ({ ...x, _score: Math.max(x._score || 0, scoreItem(x, query)) }))
-      .filter(x => x._score >= 25 || norm(x.title).includes(norm(query)) || norm(query).includes(norm(x.title)))
-      .sort((a,b) => (b._score || 0) - (a._score || 0))
-      .slice(0, 24);
-  }
-
-  window.searchTitles = async function(q) {
-    const results = document.getElementById('titleAutocomplete');
-    if (!results) return;
-    const query = clean(q);
-    if (query.length < 2) { results.classList.remove('open'); return; }
-    const cacheKey = 'duanni-final|' + norm(query);
-    if (localSearchCache.has(cacheKey)) { window.renderAutocomplete(localSearchCache.get(cacheKey)); return; }
-    if (window.autocompleteAbort) window.autocompleteAbort.abort();
-    window.autocompleteAbort = new AbortController();
-    const signal = window.autocompleteAbort.signal;
-    results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">Buscando em Google Books, Open Library e catálogos BR...</div>`;
-    results.classList.add('open');
-    try {
-      const settled = await Promise.allSettled([
-        searchGoogle(query, signal),
-        searchOpenLibrary(query, signal),
-        searchMercadoLivre(query, signal),
-        searchBrasilApi(query, signal)
-      ]);
-      const merged = [];
-      for (const res of settled) if (res.status === 'fulfilled') for (const item of res.value) addDedupe(merged, item, query);
-      const items = finalSort(merged, query);
-      localSearchCache.set(cacheKey, items);
-      window.renderAutocomplete(items);
-      console.info('[Minha Estante] busca corrigida', query, items);
-    } catch(e) {
-      if (e && e.name === 'AbortError') return;
-      console.warn('[Minha Estante] falha na busca corrigida', e);
-      window.renderAutocomplete([]);
-    }
-  };
-
-  async function findBestMeta(title, author, signal) {
-    const query = [title, author].filter(Boolean).join(' ');
-    const merged = [];
-    const settled = await Promise.allSettled([searchGoogle(query, signal), searchOpenLibrary(query, signal)]);
-    for (const res of settled) if (res.status === 'fulfilled') for (const item of res.value) addDedupe(merged, item, query);
-    return finalSort(merged, query)[0] || null;
-  }
-
-  if (typeof window.coverKey !== 'function') window.coverKey = (t,a) => norm(t + '|' + a);
-
-  window.fetchBookMeta = async function(title, author) {
-    const key = window.coverKey(title, author);
-    if (!window.state) window.state = {};
-    if (!state.covers) state.covers = {};
-    if (!state.bookPages) state.bookPages = {};
-    const cachedCover = state.covers[key] && state.covers[key] !== 'NONE' ? state.covers[key] : null;
-    const cachedPages = state.bookPages[key] || null;
-    if (cachedCover && cachedPages) return { cover: cachedCover, pages: cachedPages };
-
-    const ctrl = new AbortController();
-    const best = await findBestMeta(title, author, ctrl.signal);
-    let cover = cachedCover;
-    let pages = cachedPages;
-    if (best) {
-      pages = pages || best.number_of_pages_median || null;
-      cover = cover || best.cover_url || (best.cover_i ? `https://covers.openlibrary.org/b/id/${best.cover_i}-L.jpg` : null);
-      const isbn = (best.isbn || []).find(x => String(x).replace(/[^0-9X]/gi, '').length === 13) || (best.isbn || [])[0];
-      if (!cover && isbn) cover = `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`;
-    }
-    if (cover) state.covers[key] = cover;
-    else if (!state.covers[key]) state.covers[key] = 'NONE';
-    if (pages) state.bookPages[key] = pages;
-    try { if (typeof scheduleSave === 'function') scheduleSave(); } catch(e) {}
-    return { cover, pages };
-  };
-
-  window.searchOpenLibraryCovers = async function(book) {
-    const title = clean(book && (book.t || book.title));
-    const author = clean(book && (book.a || book.author));
-    const query = [title, author].filter(Boolean).join(' ');
-    const merged = [];
-    const settled = await Promise.allSettled([searchGoogle(query), searchOpenLibrary(query)]);
-    for (const res of settled) if (res.status === 'fulfilled') for (const item of res.value) addDedupe(merged, item, query);
-    const seen = new Set();
-    const covers = [];
-    const push = (url, source) => {
-      if (!url) return;
-      const cleanUrl = String(url).replace('http://','https://');
-      if (seen.has(cleanUrl)) return;
-      seen.add(cleanUrl);
-      covers.push({ url: cleanUrl, source });
-    };
-    finalSort(merged, query).forEach(item => {
-      push(item.cover_url, item._source === 'google' ? 'Google Books' : 'Open Library');
-      if (item.cover_i) push(`https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg`, 'Open Library');
-      (item.isbn || []).slice(0, 8).forEach(isbn => push(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`, 'ISBN'));
+    // Páginas por dia: usa dias reais de leitura, não o ano inteiro.
+    // Prioridade: sessões registradas com páginas. Fallback: intervalo início/fim do livro.
+    const readBookIds = new Set(readBooks.map(b => b.id));
+    const activeDays = new Set();
+    let actualSecondsRead = 0;
+    (state.sessions || []).forEach(s => {
+      if (!readBookIds.has(s.bookId)) return;
+      const pagesDone = (parseInt(s.pageEnd) || 0) - (parseInt(s.pageStart) || 0);
+      if (pagesDone > 0 && s.startedAt) activeDays.add(String(s.startedAt).slice(0, 10));
+      if (s.durationSeconds && s.durationSeconds > 0) actualSecondsRead += s.durationSeconds;
     });
-    return covers.slice(0, 30);
-  };
-})();
-</script>
-
-<script>
-/* ==========================================================
-   CORREÇÃO REAL — sem Google 429 e sem Mercado Livre 403
-   Motivo: esses erros vêm de limite/bloqueio no navegador.
-   Agora o autocomplete usa Open Library + opção manual.
-   ========================================================== */
-(function(){
-  const CACHE_KEY = 'minha_estante_busca_livros_sem_erro_v1';
-  const mem = new Map();
-  let activeController = null;
-
-  const clean = v => String(v || '').trim();
-  const norm = v => clean(v).toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const esc = v => String(v || '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-  const usefulTokens = v => norm(v).split(' ').filter(t => t.length > 2 && !['livro','ebook','kindle','romance','sucesso','bookgram','uma','um','dos','das','para','com','sem','que','por','the','and'].includes(t));
-  const isHttp = url => /^https?:\/\//i.test(String(url || ''));
-
-  function readCache(){ try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); } catch(e){ return {}; } }
-  function writeCache(k, v){ try { const c = readCache(); c[k] = { at: Date.now(), items: v }; localStorage.setItem(CACHE_KEY, JSON.stringify(c)); } catch(e){} }
-  function cached(k){
-    if (mem.has(k)) return mem.get(k);
-    const c = readCache()[k];
-    if (!c || !Array.isArray(c.items)) return null;
-    if (Date.now() - (c.at || 0) > 7*24*60*60*1000) return null;
-    mem.set(k, c.items);
-    return c.items;
-  }
-
-  async function json(url, signal, timeoutMs = 9000){
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-    try {
-      const resp = await fetch(url, { signal: signal || ctrl.signal, headers: { 'Accept':'application/json' } });
-      if (!resp.ok) return null;
-      return await resp.json();
-    } catch(e) {
-      if (e && e.name === 'AbortError') throw e;
-      return null;
-    } finally { clearTimeout(timer); }
-  }
-
-  function score(doc, q){
-    const nq = norm(q), nt = norm(doc.title), na = norm((doc.author_name || []).join(' '));
-    const qt = usefulTokens(q);
-    let s = 0;
-    if (nt === nq) s += 160;
-    if (nt.includes(nq) || nq.includes(nt)) s += 80;
-    s += qt.filter(t => nt.includes(t)).length * 35;
-    s += qt.filter(t => na.includes(t)).length * 15;
-    if (doc.cover_i || doc.cover_url) s += 22;
-    if (Array.isArray(doc.isbn) && doc.isbn.length) s += 15;
-    if (doc.number_of_pages_median) s += 8;
-    if ((doc.language || []).includes('por') || doc._language === 'pt') s += 12;
-    return s;
-  }
-
-  function add(list, item, q){
-    if (!item || !clean(item.title)) return;
-    item.title = clean(item.title);
-    item.author_name = Array.isArray(item.author_name) ? item.author_name.filter(Boolean) : (item.author_name ? [item.author_name] : []);
-    item.isbn = Array.isArray(item.isbn) ? item.isbn.filter(Boolean) : [];
-    item.cover_url = isHttp(item.cover_url) ? item.cover_url.replace('http://','https://') : '';
-    item._score = Math.max(item._score || 0, score(item, q));
-    const key = norm(item.title) + '|' + norm((item.author_name || [])[0] || '');
-    const old = list.find(x => (norm(x.title) + '|' + norm((x.author_name || [])[0] || '')) === key);
-    if (old) {
-      if (!old.cover_url && item.cover_url) old.cover_url = item.cover_url;
-      if (!old.cover_i && item.cover_i) old.cover_i = item.cover_i;
-      if (!old.number_of_pages_median && item.number_of_pages_median) old.number_of_pages_median = item.number_of_pages_median;
-      old.isbn = [...new Set([...(old.isbn || []), ...(item.isbn || [])])];
-      old._score = Math.max(old._score || 0, item._score || 0);
-      return;
-    }
-    list.push(item);
-  }
-
-  async function searchOpenLibrary(q, signal){
-    const fields = 'title,author_name,cover_i,number_of_pages_median,subject,isbn,language,publisher';
-    const simplified = usefulTokens(q).join(' ') || q;
-    const urls = [
-      `https://openlibrary.org/search.json?title=${encodeURIComponent(q)}&limit=35&fields=${fields}`,
-      `https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=35&fields=${fields}`,
-      simplified !== q ? `https://openlibrary.org/search.json?q=${encodeURIComponent(simplified)}&limit=35&fields=${fields}` : ''
-    ].filter(Boolean);
-    const out = [];
-    const settled = await Promise.allSettled(urls.map(u => json(u, signal)));
-    for (const res of settled) {
-      const docs = res.status === 'fulfilled' && res.value ? (res.value.docs || []) : [];
-      docs.forEach(d => add(out, {...d, author_name:d.author_name || [], _source:'ol'}, q));
-    }
-    return out;
-  }
-
-  async function searchByIsbn(q, signal){
-    const isbn = clean(q).replace(/[^0-9X]/gi, '');
-    if (!(isbn.length === 10 || isbn.length === 13)) return [];
-    const data = await json(`https://openlibrary.org/isbn/${isbn}.json`, signal);
-    if (!data || !data.title) return [];
-    let authors = [];
-    if (Array.isArray(data.authors)) {
-      authors = data.authors.map(a => String(a.key || '').split('/').pop()).filter(Boolean);
-    }
-    return [{
-      title: data.title,
-      author_name: authors,
-      isbn: [isbn],
-      number_of_pages_median: data.number_of_pages || null,
-      cover_url: `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`,
-      _source: 'isbn',
-      _score: 999
-    }];
-  }
-
-  function manualItem(q){
-    return {
-      title: q,
-      author_name: [],
-      isbn: [],
-      number_of_pages_median: null,
-      cover_url: '',
-      cover_i: null,
-      _source: 'manual',
-      _score: 1
-    };
-  }
-
-  function finalItems(items, q){
-    const nq = norm(q);
-    const qt = usefulTokens(q);
-    const filtered = items
-      .map(x => ({...x, _score: Math.max(x._score || 0, score(x, q))}))
-      .filter(x => x._score >= 30 || norm(x.title).includes(nq) || qt.some(t => norm(x.title).includes(t)))
-      .sort((a,b) => (b._score || 0) - (a._score || 0))
-      .slice(0, 14);
-    filtered.push(manualItem(q));
-    return filtered;
-  }
-
-  window.renderAutocomplete = function(items){
-    const results = document.getElementById('titleAutocomplete');
-    if (!results) return;
-    const list = Array.isArray(items) ? items : [];
-    if (!list.length) {
-      results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft); line-height:1.35;">Nenhum livro encontrado. Você ainda pode preencher manualmente.</div>`;
-      results._items = [];
-      results.classList.add('open');
-      return;
-    }
-    const badgeMap = { ol:'Open Library', isbn:'ISBN', manual:'Manual' };
-    results.innerHTML = list.map((item, i) => {
-      const olCover = item.cover_i ? `https://covers.openlibrary.org/b/id/${item.cover_i}-M.jpg` : '';
-      const coverUrl = isHttp(item.cover_url) ? item.cover_url : olCover;
-      const cover = coverUrl ? `<img class="autocomplete-cover" src="${esc(coverUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none'">` : `<div class="autocomplete-cover"></div>`;
-      const author = (item.author_name || []).slice(0,2).join(', ');
-      const pages = item.number_of_pages_median ? `${item.number_of_pages_median} pgs` : '';
-      const badge = badgeMap[item._source] ? `<span style="font-size:9px;background:var(--ink);color:var(--cream);border-radius:3px;padding:1px 4px;margin-left:4px;font-weight:600;vertical-align:middle;">${badgeMap[item._source]}</span>` : '';
-      const help = item._source === 'manual' ? '<div class="autocomplete-pages">Usar esse título e preencher autor/capa manualmente</div>' : (pages ? `<div class="autocomplete-pages">${pages}</div>` : '');
-      return `<div class="autocomplete-item" data-index="${i}" onmousedown="selectAutocomplete(${i})">${cover}<div class="autocomplete-info"><div class="autocomplete-title">${esc(item.title)}${badge}</div><div class="autocomplete-author">${esc(author || 'Autor não informado')}</div>${help}</div></div>`;
-    }).join('');
-    results._items = list;
-    results.classList.add('open');
-  };
-
-  window.searchTitles = async function(q){
-    const results = document.getElementById('titleAutocomplete');
-    if (!results) return;
-    const query = clean(q);
-    if (query.length < 3) { results.classList.remove('open'); return; }
-    const key = norm(query);
-    const old = cached(key);
-    if (old) { window.renderAutocomplete(old); return; }
-    if (activeController) activeController.abort();
-    activeController = new AbortController();
-    const signal = activeController.signal;
-    results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">Buscando sem Google/Mercado Livre para evitar bloqueio...</div>`;
-    results.classList.add('open');
-    try {
-      const settled = await Promise.allSettled([searchOpenLibrary(query, signal), searchByIsbn(query, signal)]);
-      const merged = [];
-      for (const res of settled) if (res.status === 'fulfilled') for (const item of res.value) add(merged, item, query);
-      const items = finalItems(merged, query);
-      mem.set(key, items); writeCache(key, items);
-      window.renderAutocomplete(items);
-      console.info('[Minha Estante] busca sem 429/403', query, items);
-    } catch(e) {
-      if (e && e.name === 'AbortError') return;
-      window.renderAutocomplete([manualItem(query)]);
-    }
-  };
-
-  window.selectAutocomplete = function(index){
-    const results = document.getElementById('titleAutocomplete');
-    const item = results?._items && results._items[index];
-    if (!item) return;
-    const titleEl = document.getElementById('newTitle');
-    const authorEl = document.getElementById('newAuthor');
-    const pagesEl = document.getElementById('newPages');
-    if (titleEl) titleEl.value = item.title || '';
-    if (authorEl && (item.author_name || [])[0]) authorEl.value = (item.author_name || [])[0] || '';
-    if (pagesEl && item.number_of_pages_median) pagesEl.value = item.number_of_pages_median;
-    if (typeof guessGenreFromSubjects === 'function') guessGenreFromSubjects(item.subject || []);
-    try {
-      const author = (item.author_name || [])[0] || (authorEl ? authorEl.value : '');
-      const key = coverKey(item.title, author);
-      if (!state.covers) state.covers = {};
-      if (isHttp(item.cover_url)) state.covers[key] = item.cover_url;
-      else if (item.cover_i) state.covers[key] = `https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg`;
-      if (item.number_of_pages_median) { state.bookPages = state.bookPages || {}; state.bookPages[key] = item.number_of_pages_median; }
-      if (typeof saveState === 'function') saveState();
-    } catch(e) {}
-    results.classList.remove('open');
-  };
-
-  const oldGetBookCover = window.getBookCover || (typeof getBookCover === 'function' ? getBookCover : null);
-  window.getBookCover = function(book){
-    const url = oldGetBookCover ? oldGetBookCover(book) : null;
-    return isHttp(url) || String(url || '').startsWith('data:image/') ? url : null;
-  };
-
-  window.searchOpenLibraryCovers = async function(book){
-    const title = clean(book && (book.t || book.title));
-    const author = clean(book && (book.a || book.author));
-    const q = [title, author].filter(Boolean).join(' ');
-    const docs = await searchOpenLibrary(q, null);
-    const seen = new Set();
-    const covers = [];
-    const push = (url, source) => {
-      if (!isHttp(url)) return;
-      const u = url.replace('http://','https://');
-      if (seen.has(u)) return;
-      seen.add(u); covers.push({url:u, source});
-    };
-    finalItems(docs, q).forEach(item => {
-      if (item.cover_i) push(`https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg`, 'Open Library');
-      (item.isbn || []).slice(0, 8).forEach(isbn => push(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`, 'ISBN'));
-      push(item.cover_url, item._source === 'isbn' ? 'ISBN' : 'Open Library');
-    });
-    return covers.slice(0, 24);
-  };
-})();
-</script>
-
-
-
-<script>
-/* ==========================================================
-   BUSCA COM BACKEND VERCEL — versão definitiva
-   Use publicado na Vercel. Não abrir por file:///.
-   ========================================================== */
-(function(){
-  const API_ENDPOINT = '/api/books';
-  let backendAbort = null;
-
-  function isHttp(url){ return /^https?:\/\//i.test(String(url || '')); }
-  function cleanLocal(v){
-    return String(v || '')
-      .replace(/\b(e\s*book|ebook|kindle|capa comum|brochura|livro|sucesso do bookgram|edi[cç][aã]o portugu[eê]s[a]?|portugu[eê]s[a]?)\b/gi, ' ')
-      .replace(/\s*[:|–—-]\s*(uma romantasia.*|sucesso.*|e\s*book.*|ebook.*|kindle.*)$/gi, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
-  function showMsg(text){
-    const results = document.getElementById('titleAutocomplete');
-    if (!results) return;
-    results.innerHTML = `<div style="padding:12px 16px;font-size:13px;color:var(--ink-soft);line-height:1.35;">${text}</div>`;
-    results.classList.add('open');
-  }
-
-  window.searchTitles = async function(q){
-    const results = document.getElementById('titleAutocomplete');
-    if (!results) return;
-    const raw = String(q || '').trim();
-    const query = cleanLocal(raw) || raw;
-    if (query.length < 2) { results.classList.remove('open'); return; }
-
-    if (backendAbort) backendAbort.abort();
-    backendAbort = new AbortController();
-    const signal = backendAbort.signal;
-
-    showMsg('Buscando livro no servidor.');
-    try {
-      const url = `${API_ENDPOINT}?q=${encodeURIComponent(query)}`;
-      const resp = await fetch(url, { signal, headers: { 'Accept': 'application/json' } });
-      if (!resp.ok) throw new Error('API indisponível');
-      const data = await resp.json();
-      const items = Array.isArray(data.items) ? data.items : [];
-      if (typeof window.renderAutocomplete === 'function') {
-        window.renderAutocomplete(items);
-      } else if (typeof renderAutocomplete === 'function') {
-        renderAutocomplete(items);
-      }
-      console.info('[Minha Estante] busca backend', query, items);
-    } catch (err) {
-      if (err && err.name === 'AbortError') return;
-      const fallback = { title: query, author_name: [], number_of_pages_median: null, subject: [], isbn: [], cover_url: '', cover_i: null, _source: 'manual' };
-      if (typeof window.renderAutocomplete === 'function') window.renderAutocomplete([fallback]);
-      else showMsg('Servidor indisponível. Use a opção manual.');
-      console.warn('[Minha Estante] backend indisponível', err);
-    }
-  };
-
-  // Capa e páginas também passam pelo backend.
-  window.fetchBookMeta = async function(title, author){
-    const q = [title, author].filter(Boolean).join(' ').trim();
-    if (!q) return { cover: null, pages: null };
-    try {
-      const resp = await fetch(`${API_ENDPOINT}?q=${encodeURIComponent(q)}`, { headers: { 'Accept': 'application/json' } });
-      if (!resp.ok) throw new Error('API indisponível');
-      const data = await resp.json();
-      const item = (data.items || [])[0];
-      if (!item) return { cover: null, pages: null };
-      let cover = item.cover_url || '';
-      if (!isHttp(cover) && item.cover_i) cover = `https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg`;
-      return { cover: isHttp(cover) ? cover : null, pages: item.number_of_pages_median || null };
-    } catch(e) {
-      return { cover: null, pages: null };
-    }
-  };
-
-  window.searchOpenLibraryCovers = async function(book){
-    const title = book && (book.t || book.title || book.name);
-    const author = book && (book.a || book.author);
-    const q = [title, author].filter(Boolean).join(' ').trim();
-    if (!q) return [];
-    try {
-      const resp = await fetch(`${API_ENDPOINT}?q=${encodeURIComponent(q)}`, { headers: { 'Accept': 'application/json' } });
-      if (!resp.ok) return [];
-      const data = await resp.json();
-      const seen = new Set();
-      const covers = [];
-      (data.items || []).forEach(item => {
-        const push = (url, source) => {
-          if (!isHttp(url)) return;
-          const clean = String(url).replace('http://','https://');
-          if (seen.has(clean)) return;
-          seen.add(clean);
-          covers.push({ url: clean, source });
-        };
-        push(item.cover_url, item._source || 'API');
-        if (item.cover_i) push(`https://covers.openlibrary.org/b/id/${item.cover_i}-L.jpg`, 'Open Library');
-        (item.isbn || []).slice(0, 6).forEach(isbn => push(`https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`, 'ISBN'));
+    if (activeDays.size === 0) {
+      readBooks.forEach(b => {
+        if (b.startDate && b.endDate) {
+          const start = new Date(b.startDate + 'T00:00:00');
+          const end = new Date(b.endDate + 'T00:00:00');
+          const diffDays = Math.max(1, Math.round((end - start) / 86400000) + 1);
+          for (let i = 0; i < diffDays; i++) {
+            const d = new Date(start);
+            d.setDate(start.getDate() + i);
+            activeDays.add(d.toISOString().slice(0, 10));
+          }
+        } else if (b.endDate) {
+          activeDays.add(b.endDate);
+        }
       });
-      return covers.slice(0, 24);
-    } catch(e) { return []; }
-  };
-})();
-</script>
-
-
-<script>
-/* FORÇA BUSCA V4 — precisa ser o ÚLTIMO script antes de </body> */
-(function(){
-  const API_ENDPOINT = '/api/books';
-  let aborter = null;
-  function msg(t){
-    const box = document.getElementById('titleAutocomplete');
-    if (!box) return;
-    box.innerHTML = '<div style="padding:12px 16px;font-size:13px;color:var(--ink-soft);line-height:1.35;">'+t+'</div>';
-    box.classList.add('open');
-  }
-  function fallbackManual(q){
-    return [{ title:q, author_name:[], number_of_pages_median:null, subject:[], isbn:[], cover_url:'', cover_i:null, _source:'manual' }];
-  }
-  function render(items){
-    if (typeof window.renderAutocomplete === 'function') return window.renderAutocomplete(items);
-    if (typeof renderAutocomplete === 'function') return renderAutocomplete(items);
-  }
-  window.searchTitles = async function(q){
-    const box = document.getElementById('titleAutocomplete');
-    if (!box) return;
-    const query = String(q || '').trim();
-    if (query.length < 2) { box.classList.remove('open'); return; }
-    if (aborter) aborter.abort();
-    aborter = new AbortController();
-    msg('Buscando no servidor v4...');
-    try {
-      const r = await fetch(API_ENDPOINT + '?q=' + encodeURIComponent(query), { signal: aborter.signal, headers:{Accept:'application/json'} });
-      if (!r.ok) throw new Error('API ' + r.status);
-      const data = await r.json();
-      let items = Array.isArray(data.items) ? data.items : [];
-      if (!items.length) items = fallbackManual(query);
-      render(items);
-      console.info('[Minha Estante] BACKEND V4', data.version, query, items);
-    } catch(e){
-      if (e && e.name === 'AbortError') return;
-      console.warn('[Minha Estante] BACKEND V4 falhou', e);
-      render(fallbackManual(query));
     }
+    const pagesPerDay = totalPages > 0 && activeDays.size > 0
+      ? Math.round(totalPages / activeDays.size)
+      : 0;
+
+    // Livros por mês no período selecionado
+    const byMonth = {};
+    readBooks.forEach(b => {
+      if (!b.endDate) return;
+      const [y, m] = b.endDate.split('-');
+      const k = `${y}-${m}`;
+      byMonth[k] = (byMonth[k] || 0) + 1;
+    });
+    const avgPerMonth = Object.keys(byMonth).length > 0
+      ? (totalBooks / Object.keys(byMonth).length).toFixed(1)
+      : '—';
+
+    // Gêneros mais lidos
+    const byGenre = {};
+    readBooks.forEach(b => {
+      const g = b.g || 'outro';
+      byGenre[g] = (byGenre[g] || 0) + 1;
+    });
+    const topGenres = Object.entries(byGenre).sort((a, b) => b[1] - a[1]);
+
+    // Autores mais lidos
+    const byAuthor = {};
+    readBooks.forEach(b => {
+      const a = (b.a || '').trim();
+      if (a) byAuthor[a] = (byAuthor[a] || 0) + 1;
+    });
+    const topAuthors = Object.entries(byAuthor).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    // Maior e menor livro lido (com páginas registradas)
+    const withPages = readBooks.filter(b => parseInt(b.pagesTotal) > 0);
+    withPages.sort((a, b) => parseInt(b.pagesTotal) - parseInt(a.pagesTotal));
+    const biggestBook = withPages[0] || null;
+    const smallestBook = withPages[withPages.length - 1] || null;
+
+    // Horas lendo: usa sessões reais quando existem; caso contrário, mostra estimativa por páginas.
+    const estMinutes = totalPages * 1.2;
+    const readingHours = actualSecondsRead > 0
+      ? Math.round(actualSecondsRead / 3600)
+      : Math.round(estMinutes / 60);
+    const hoursLabel = actualSecondsRead > 0 ? 'horas lendo' : 'horas estimadas';
+
+    // Livros por ano (para retrospectiva)
+    const byYear = {};
+    allRead.forEach(b => {
+      const y = String(b.endDate || '').slice(0, 4);
+      if (/^\d{4}$/.test(y)) byYear[y] = (byYear[y] || 0) + 1;
+    });
+    const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a));
+
+    // Avaliação média
+    const rated = readBooks.filter(b => Number(b.rating) > 0);
+    const avgRating = rated.length
+      ? (rated.reduce((s, b) => s + Number(b.rating), 0) / rated.length).toFixed(1)
+      : null;
+
+    const esc = s => String(s || '').replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    const MONTH_NAMES_SHORT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+    let html = '';
+
+    // ── Cards de destaque ──
+    html += `<div class="profile-stat-grid">
+      <div class="profile-stat-card">
+        <div class="profile-stat-number">${totalBooks}</div>
+        <div class="profile-stat-label">livros lidos</div>
+      </div>
+      <div class="profile-stat-card">
+        <div class="profile-stat-number">${totalPages > 0 ? totalPages.toLocaleString('pt-BR') : '—'}</div>
+        <div class="profile-stat-label">páginas lidas</div>
+      </div>
+    </div>`;
+
+    // ── Dados gerais ──
+    html += `<div class="profile-block-title">dados gerais</div>`;
+    if (avgPages > 0)   html += `<div class="profile-row"><span>Média de páginas por livro</span><strong>${avgPages}</strong></div>`;
+    if (avgPerMonth !== '—') html += `<div class="profile-row"><span>Livros por mês</span><strong>${avgPerMonth}</strong></div>`;
+    if (avgRating)      html += `<div class="profile-row"><span>Nota média dos livros</span><strong>★ ${avgRating}</strong></div>`;
+    if (readingHours > 0) html += `<div class="profile-row"><span>${actualSecondsRead > 0 ? 'Tempo registrado de leitura' : 'Tempo estimado de leitura'}</span><strong>${actualSecondsRead > 0 ? '' : '~'}${readingHours}h</strong></div>`;
+
+    if (biggestBook && biggestBook !== smallestBook) {
+      html += `<div class="profile-row"><span>Maior livro lido</span><strong>${esc(biggestBook.t)} (${biggestBook.pagesTotal} pág.)</strong></div>`;
+      if (smallestBook && parseInt(smallestBook.pagesTotal) > 0) {
+        html += `<div class="profile-row"><span>Menor livro lido</span><strong>${esc(smallestBook.t)} (${smallestBook.pagesTotal} pág.)</strong></div>`;
+      }
+    }
+
+    // ── Gêneros ──
+    if (topGenres.length > 0) {
+      html += `<div class="profile-block-title">gêneros mais lidos</div>`;
+      topGenres.slice(0, 6).forEach(([g, count]) => {
+        const genreInfo = (typeof GENRES !== 'undefined' && GENRES[g]) || { name: g, emoji: '📖' };
+        html += `<div class="profile-row"><span>${esc(genreInfo.emoji || '')} ${esc(genreInfo.name || g)}</span><strong>${count} livro${count !== 1 ? 's' : ''}</strong></div>`;
+      });
+    }
+
+    // ── Autores ──
+    if (topAuthors.length > 0) {
+      html += `<div class="profile-block-title">autores favoritos</div>`;
+      topAuthors.forEach(([author, count]) => {
+        if (count < 2) return; // só mostra autores lidos mais de 1 vez
+        html += `<div class="profile-row"><span>${esc(author)}</span><strong>${count} livros</strong></div>`;
+      });
+      if (topAuthors.filter(([, c]) => c >= 2).length === 0) {
+        html += `<div class="profile-row"><span>Ainda sem autores repetidos ✦</span></div>`;
+      }
+    }
+
+    // ── Retrospectiva por ano ──
+    if (!selectedYear && years.length > 0) {
+      html += `<div class="profile-block-title">retrospectiva por ano</div>`;
+      years.forEach(year => {
+        const count = byYear[year];
+        const booksOfYear = allRead.filter(b => String(b.endDate || '').slice(0, 4) === year);
+        const pagesOfYear = booksOfYear.reduce((s, b) => s + (parseInt(b.pagesTotal) || 0), 0);
+
+        // Mês mais produtivo
+        const mByMonth = {};
+        booksOfYear.forEach(b => {
+          if (!b.endDate) return;
+          const m = parseInt(b.endDate.split('-')[1]) - 1;
+          mByMonth[m] = (mByMonth[m] || 0) + 1;
+        });
+        const bestMonthEntry = Object.entries(mByMonth).sort((a, b) => b[1] - a[1])[0];
+        const bestMonth = bestMonthEntry ? MONTH_NAMES_SHORT[parseInt(bestMonthEntry[0])] : null;
+
+        html += `<div class="profile-retrospective">
+          <div class="profile-retro-year">${year}</div>
+          <div class="profile-retro-line">
+            ${count} livro${count !== 1 ? 's' : ''} lido${count !== 1 ? 's' : ''}
+            ${pagesOfYear > 0 ? ` · ${pagesOfYear.toLocaleString('pt-BR')} páginas` : ''}
+            ${bestMonth ? ` · mês mais ativo: ${bestMonth}` : ''}
+          </div>
+        </div>`;
+      });
+    }
+
+    box.innerHTML = html;
   };
-  window.fetchBookMeta = async function(title, author){
-    const q = [title, author].filter(Boolean).join(' ').trim();
-    if (!q) return {cover:null, pages:null};
-    try {
-      const r = await fetch(API_ENDPOINT + '?q=' + encodeURIComponent(q), {headers:{Accept:'application/json'}});
-      const data = await r.json();
-      const item = (data.items || [])[0] || {};
-      let cover = item.cover_url || '';
-      if (!/^https?:\/\//i.test(cover) && item.cover_i) cover = 'https://covers.openlibrary.org/b/id/' + item.cover_i + '-L.jpg';
-      return {cover:/^https?:\/\//i.test(cover) ? cover : null, pages:item.number_of_pages_median || null};
-    } catch(e){ return {cover:null, pages:null}; }
+
+  // ============================================================
+  // 3. BADGE MANUAL DE SÉRIE / SEQUÊNCIA
+  // ============================================================
+  // A sequência fica manual para evitar identificação automática errada.
+  // Marque no cadastro/edição: Livro único, Duologia, Trilogia ou Saga.
+  function detectSeriesInfo(book) {
+    if (!book) return null;
+    const type = String(book.seriesType || '').trim().toLowerCase();
+    if (!type || type === 'unico' || type === 'livro único') return null;
+    const labels = { duologia: 'duologia', trilogia: 'trilogia', saga: 'saga' };
+    const base = labels[type] || null;
+    if (!base) return null;
+    const volume = book.seriesVolume ? ` · vol. ${book.seriesVolume}` : '';
+    const name = book.seriesName ? ` · ${book.seriesName}` : '';
+    return `${base}${volume}${name}`;
+  }
+
+  // Injeta badge de série nos cards de livros (chamado pelo renderAll original)
+  const _seriesObserver = new MutationObserver(() => {
+    injectSeriesBadges();
+  });
+
+  function startSeriesObserver() {
+    const genres = document.getElementById('genres');
+    if (genres) {
+      _seriesObserver.observe(genres, { childList: true, subtree: true });
+    }
+  }
+
+  function injectSeriesBadges() {
+    if (injectSeriesBadges._running) return;
+    injectSeriesBadges._running = true;
+    requestAnimationFrame(() => {
+      injectSeriesBadges._running = false;
+      const books = state && state.books ? state.books : [];
+      const bookMap = {};
+      books.forEach(b => { bookMap[b.id] = b; });
+
+      document.querySelectorAll('[data-book-id]:not([data-series-checked])').forEach(el => {
+        const id = parseInt(el.getAttribute('data-book-id'));
+        const book = bookMap[id];
+        if (!book) return;
+        el.setAttribute('data-series-checked', '1');
+
+        const seriesInfo = detectSeriesInfo(book);
+        if (!seriesInfo) return;
+
+        const authorEl = el.querySelector('.book-author, .autocomplete-author');
+        if (authorEl) {
+          const badge = document.createElement('div');
+          badge.className = 'series-badge';
+          badge.textContent = '📚 ' + seriesInfo;
+          authorEl.after(badge);
+        }
+      });
+    });
+  }
+
+  // ============================================================
+  // 4. CACHE DE BUSCA MELHORADO + FEEDBACK OFFLINE NA BUSCA
+  // ============================================================
+  const _searchCache = new Map();
+  const _SEARCH_CACHE_TTL = 10 * 60 * 1000; // 10 min
+
+  // Wraps searchTitles original para adicionar cache com TTL e feedback offline
+  const _originalSearchTitles = window.searchTitles;
+  window.searchTitles = async function(q) {
+    const query = String(q || '').trim();
+    if (query.length < 2) {
+      const results = document.getElementById('titleAutocomplete');
+      if (results) results.classList.remove('open');
+      return;
+    }
+
+    // Offline: usa só cache e catálogo local
+    if (!navigator.onLine) {
+      const results = document.getElementById('titleAutocomplete');
+      if (results) {
+        results.innerHTML = `<div style="padding:12px 16px; font-size:13px; color:var(--ink-soft);">
+          📡 Sem conexão — mostrando resultados salvos
+        </div>`;
+        results.classList.add('open');
+      }
+
+      // Verifica cache
+      const cached = _searchCache.get(query);
+      if (cached && cached.items) {
+        if (typeof window.renderAutocomplete === 'function') {
+          window.renderAutocomplete(cached.items);
+        }
+      }
+      return;
+    }
+
+    // Verifica cache com TTL
+    const cached = _searchCache.get(query);
+    if (cached && (Date.now() - cached.ts) < _SEARCH_CACHE_TTL) {
+      if (typeof window.renderAutocomplete === 'function') {
+        window.renderAutocomplete(cached.items);
+        const results = document.getElementById('titleAutocomplete');
+        if (results) results.classList.add('open');
+      }
+      return;
+    }
+
+    // Chama original e intercepta resultado para salvar no cache
+    const origRender = window.renderAutocomplete;
+    window.renderAutocomplete = function(items) {
+      _searchCache.set(query, { items, ts: Date.now() });
+      // Limpa cache se ficar grande
+      if (_searchCache.size > 80) {
+        const oldestKey = _searchCache.keys().next().value;
+        _searchCache.delete(oldestKey);
+      }
+      origRender(items);
+      window.renderAutocomplete = origRender;
+    };
+
+    if (typeof _originalSearchTitles === 'function') {
+      await _originalSearchTitles(q);
+    }
+    // Garante que renderAutocomplete seja restaurado em caso de erro
+    window.renderAutocomplete = origRender;
   };
+
+  // ============================================================
+  // 5. ACESSO OFFLINE: exibe dados locais mesmo sem internet
+  // ============================================================
+  // O app já usa localStorage, então os dados existem offline.
+  // Este bloco garante que o sync não trava o carregamento quando offline.
+  const _originalSyncFromSupabase = window.syncFromSupabase;
+  if (typeof _originalSyncFromSupabase === 'function') {
+    window.syncFromSupabase = async function() {
+      if (!navigator.onLine) {
+        setSyncStatus('offline', '📡 sem conexão');
+        // Renderiza com dados locais
+        if (typeof renderAll === 'function') renderAll();
+        return;
+      }
+      return _originalSyncFromSupabase.apply(this, arguments);
+    };
+  }
+
+  // ============================================================
+  // 6. MELHORIAS DE UX: feedback ao fechar modal de perfil com
+  //    tecla Esc, e inicialização das observações
+  // ============================================================
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      if (document.getElementById('profileModal')?.classList.contains('open')) {
+        window.closeProfileModal();
+      }
+    }
+  });
+
+  // Inicializa observer de séries após o DOM estar pronto
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startSeriesObserver);
+  } else {
+    startSeriesObserver();
+  }
+
+  // Reinicializa o badge de séries sempre que renderAll for chamado
+  const _origRenderAll = window.renderAll;
+  if (typeof _origRenderAll === 'function') {
+    window.renderAll = function() {
+      _origRenderAll.apply(this, arguments);
+      // Reseta os checks para que novos cards recebam badge
+      document.querySelectorAll('[data-series-checked]').forEach(el => {
+        el.removeAttribute('data-series-checked');
+      });
+      setTimeout(injectSeriesBadges, 120);
+    };
+  }
+
+  // ============================================================
+  // 7. INDICADOR DE OFFLINE NO SYNC STATUS
+  // ============================================================
+  window.addEventListener('offline', function() {
+    setSyncStatus('offline', '📡 sem conexão');
+    updateOfflineBanner();
+  });
+  window.addEventListener('online', function() {
+    setSyncStatus('synced', '✦ online');
+    updateOfflineBanner();
+    // Tenta sincronizar ao recuperar conexão
+    if (typeof syncFromSupabase === 'function' && typeof config !== 'undefined' && config.setupDone && !config.skipSync) {
+      setTimeout(syncFromSupabase, 1000);
+    }
+  });
+
 })();
 </script>
+
+
 
 </body>
 </html>
