@@ -1366,6 +1366,21 @@
     margin-bottom: 3px;
   }
   
+
+  .book-series-under-title {
+    font-size: 11px;
+    color: var(--ink-soft);
+    line-height: 1.25;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    opacity: 0.9;
+  }
+
+  @media (min-width: 720px) {
+    .book-series-under-title {
+      font-size: 11px;
+    }
+  }
   .book-author {
     font-size: 12px;
     color: var(--ink-soft);
@@ -2768,10 +2783,15 @@
     color: var(--ink-soft);
     line-height: 1.15;
     padding: 0 1px;
+    margin-top: -2px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  @media (min-width: 720px) {
+    .lido-timeline-series { font-size: 10px; }
   }
 
   @media (max-width: 600px) {
@@ -5945,8 +5965,8 @@ function renderGenres() {
           <div class="lido-timeline-item" onclick="openEditModal(${book.id})">
             <div class="lido-timeline-cover" id="${coverId}">${coverFallbackHTML(book, book.g)}</div>
             <div class="lido-timeline-title">${escapeHtml(book.t)}</div>
-            ${stars ? `<div class="lido-timeline-stars">${stars}</div>` : ''}
             ${seriesLabel ? `<div class="lido-timeline-series">${seriesLabel}</div>` : ''}
+            ${stars ? `<div class="lido-timeline-stars">${stars}</div>` : ''}
           </div>
         `;
       });
@@ -5973,8 +5993,8 @@ function renderGenres() {
           <div class="lido-timeline-item" onclick="openEditModal(${book.id})">
             <div class="lido-timeline-cover" id="${coverId}">${coverFallbackHTML(book, book.g)}</div>
             <div class="lido-timeline-title">${escapeHtml(book.t)}</div>
-            ${stars ? `<div class="lido-timeline-stars">${stars}</div>` : ''}
             ${seriesLabel ? `<div class="lido-timeline-series">${seriesLabel}</div>` : ''}
+            ${stars ? `<div class="lido-timeline-stars">${stars}</div>` : ''}
           </div>
         `;
       });
@@ -6544,6 +6564,8 @@ function renderBookItemHTML(book, showGenre) {
   }
   
   const favMark = book.favorite ? '<span class="book-fav-mark">♥</span>' : '';
+  const seriesLabel = getManualSeriesLabel(book);
+  const seriesInfo = seriesLabel ? `<div class="book-series-under-title">${seriesLabel}</div>` : '';
   const genreLabel = showGenre && g ? `<div class="book-meta"><span>${g.emoji} ${g.name}</span></div>` : '';
   // Mostra botão de editar (lápis) nas abas onde editar título/gênero faz sentido
   const editBtn = (state.filter === "todos" || state.filter === "pendente")
@@ -6554,6 +6576,7 @@ function renderBookItemHTML(book, showGenre) {
     <div class="book-item" data-book-id="${book.id}">
       <div class="book-info">
         <div class="book-title-row"><div class="book-title">${escapeHtml(book.t)}</div>${favMark}</div>
+        ${seriesInfo}
         <div class="book-author">${escapeHtml(book.a)}</div>
         ${genreLabel}
         ${meta}
@@ -11693,6 +11716,7 @@ function renderProfileSummary() {
         <div class="profile-stat-number">${totalPages > 0 ? totalPages.toLocaleString('pt-BR') : '—'}</div>
         <div class="profile-stat-label">páginas lidas</div>
       </div>
+
     </div>`;
 
     // ── Dados gerais ──
