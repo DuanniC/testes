@@ -59,7 +59,7 @@ body::before { content:""; position:fixed; inset:0; background:
 
 ::-webkit-scrollbar { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:var(--accent3); border-radius:4px; }
+::-webkit-scrollbar-thumb { background:var(--bg); border-radius:4px; }
 ::-webkit-scrollbar-thumb:hover { background:var(--accent2); }
 
 /* ===== LAYOUT ===== */
@@ -221,7 +221,7 @@ tbody tr:last-child td { border-bottom:none; }
 @keyframes pageIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
 
 /* ===== AUTH ===== */
-.auth-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:var(--gradient-warm); z-index:1000; display:flex; align-items:center; justify-content:center; }
+.auth-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:var(--bg); z-index:1000; display:flex; align-items:center; justify-content:center; }
 .auth-overlay.hidden { display:none; }
 .auth-box { text-align:center; padding:32px; background:var(--card-bg); border-radius:28px; box-shadow:var(--shadow-lg); border:1px solid var(--border-soft); max-width:380px; width:90%; }
 .auth-box .logo-big { width:84px; height:84px; border-radius:24px; background:var(--gradient1); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:34px; font-family:var(--font-display); margin:0 auto 22px; box-shadow:0 12px 28px rgba(201,123,156,0.40); letter-spacing:-1px; }
@@ -315,7 +315,8 @@ tbody tr:last-child td { border-bottom:none; }
   table { font-size:12px; }
   thead th { padding:8px 8px; font-size:9.5px; }
   tbody td { padding:10px 8px; }
-  .modal { padding:20px; max-width:100%; border-radius:20px; }
+  .modal-overlay { padding:12px; }
+  .modal { padding:20px; max-width:100%; border-radius:20px; margin:0; }
   .bubble .bubble-value { font-size:19px; }
   .hide-mobile { display:none !important; }
   .show-mobile-only { display:block !important; }
@@ -1150,7 +1151,7 @@ function renderCartaoTable(){
       const desc=e.descricao||e.loja||'';
       const loja=e.loja||'';
       const catIcon=getCategoryIcon(e.categoria);
-      return`<div class="expense-item">
+      return`<div class="expense-item" onclick="editExpense('${e.id}')" style="cursor:pointer;">
         <div class="ei-icon cat-${e.categoria||'outros'}">${catIcon}</div>
         <div class="ei-info">
           <div class="ei-name">${desc}${loja&&desc!==loja?' <span style="color:var(--text-secondary);font-weight:400;">· '+loja+'</span>':''}</div>
@@ -1158,8 +1159,7 @@ function renderCartaoTable(){
         </div>
         <div class="ei-value">${formatMoney(mv)}</div>
         <div class="ei-actions">
-          <button class="btn-icon" onclick="editExpense('${e.id}')">✎</button>
-          <button class="btn-icon" onclick="deleteExpense('${e.id}')" style="color:var(--danger)">✕</button>
+          <button class="btn-icon" onclick="event.stopPropagation();deleteExpense('${e.id}')" style="color:var(--danger)">✕</button>
         </div>
       </div>`;
     }).join('');
@@ -1350,11 +1350,11 @@ function renderDuanniInicio(){
   const list=document.getElementById('duanniPersonalList'),empty=document.getElementById('duanniPersonalEmpty');
   if(!pExps.length){list.innerHTML='';empty.classList.remove('hidden');return;}
   empty.classList.add('hidden');
-  list.innerHTML=pExps.map(e=>{const paid=(DATA.cartaoStatus||[]).includes(`pe_${currentMonth}_${e.id}`);const parcLabel=e.tipo==='parcelado'&&e.parcelas>1?' · '+getParcelaLabel(e,currentMonth):'';const devo=isDevo(e.id);return`<div class="expense-item">
+  list.innerHTML=pExps.map(e=>{const paid=(DATA.cartaoStatus||[]).includes(`pe_${currentMonth}_${e.id}`);const parcLabel=e.tipo==='parcelado'&&e.parcelas>1?' · '+getParcelaLabel(e,currentMonth):'';const devo=isDevo(e.id);return`<div class="expense-item" onclick="openPersonalExpenseModal('duanni','${e.id}')" style="cursor:pointer;">
     <div class="ei-icon cat-${e.categoria||'outros'}">${getCategoryIcon(e.categoria)}</div>
     <div class="ei-info"><div class="ei-name">${e.descricao}${devo?' <span style="font-size:10px;color:#e84393;">💕</span>':''}</div><div class="ei-detail">${capitalize(e.categoria||'')}${parcLabel} · Dia ${e.dia||'-'} · ${e.banco||''}</div></div>
     <div class="ei-value">${formatMoney(getMonthValue(e))}</div>
-    <div class="ei-actions"><button class="btn-icon ${paid?'btn-success':''}" onclick="togglePersonalStatus('${e.id}')">${paid?'✓':'○'}</button><button class="btn-icon" onclick="openPersonalExpenseModal('duanni','${e.id}')">✎</button></div>
+    <div class="ei-actions"><button class="btn-icon ${paid?'btn-success':''}" onclick="event.stopPropagation();togglePersonalStatus('${e.id}')">${paid?'✓':'○'}</button></div>
   </div>`;}).join('');
 }
 
