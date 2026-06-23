@@ -294,7 +294,7 @@ tbody tr:last-child td { border-bottom:none; }
   .sidebar-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(58,45,51,0.35); backdrop-filter:blur(4px); z-index:99; display:none; }
   .sidebar-overlay.open { display:block; }
   .main-content { margin-left:0; padding:16px 16px; padding-top:68px; }
-  .mobile-header { display:flex; align-items:center; gap:12px; padding:12px 16px; background:var(--card-glass); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-bottom:1px solid var(--border-soft); position:fixed; top:0; left:0; right:0; z-index:50; }
+  .mobile-header { display:flex; align-items:center; gap:12px; padding:12px 16px; background:var(--card-glass); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-bottom:1px solid var(--border-soft); position:fixed; top:0; left:0; right:0; z-index:50; box-shadow:0 2px 10px rgba(122,106,184,0.12); }
   .hamburger { width:38px; height:38px; border:none; background:none; cursor:pointer; font-size:20px; color:var(--plum); }
   .page-header { gap:10px; }
   .page-title { font-size:24px; }
@@ -785,7 +785,7 @@ tbody tr:last-child td { border-bottom:none; }
         <input type="checkbox" id="peDevo" style="width:16px;height:16px;accent-color:#e84393;display:inline;"> 💕 Cartão do meu amor — descontar do total do Alan
       </label>
     </div>
-    <div style="display:flex;gap:6px;justify-content:flex-end;"><button class="btn btn-outline" onclick="closeModal('personalExpModal')">Cancelar</button><button class="btn btn-primary" onclick="savePersonalExpense()">Salvar</button></div>
+    <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;"><button class="btn btn-outline" onclick="closeModal('personalExpModal')">Cancelar</button><button id="peDeleteBtn" class="btn btn-danger" style="display:none;" onclick="deletePersonalExpenseFromModal()">🗑 Excluir</button><button class="btn btn-primary" onclick="savePersonalExpense()">Salvar</button></div>
     <input type="hidden" id="peEditId"><input type="hidden" id="pePerson">
   </div>
 </div>
@@ -1284,9 +1284,12 @@ function openPersonalExpenseModal(person,editId){
   const devoCb=document.getElementById('peDevo');
   if(person==='duanni'){devoGrp.style.display='block';devoCb.checked=editId?isDevo(editId):false;}
   else{devoGrp.style.display='none';devoCb.checked=false;}
+  const peDeleteBtn=document.getElementById('peDeleteBtn');
+  if(peDeleteBtn)peDeleteBtn.style.display=editId?'':'none';
   openModal('personalExpModal');
 }
 function onPeTipoChange(){document.getElementById('peParcelasGroup').style.display=document.getElementById('peTipo').value==='parcelado'?'':'none';updateParcelaPreview('pe');}
+function deletePersonalExpenseFromModal(){const editId=document.getElementById('peEditId').value;if(!editId)return;if(!confirm('Excluir esta despesa?'))return;DATA.pessoal=(DATA.pessoal||[]).filter(e=>e.id!==editId);DATA.devoIds=(DATA.devoIds||[]).filter(d=>d!==editId);scheduleSave();closeModal('personalExpModal');renderAll();showToast('Exclu\u00edda');}
 function savePersonalExpense(){
   const desc=document.getElementById('peDesc').value.trim();if(!desc)return showToast('Preencha','error');
   const valor=parseFloat(document.getElementById('peValor').value)||0;if(valor<=0)return showToast('Valor','error');
@@ -1342,8 +1345,8 @@ function renderDuanniInicio(){
   const s=document.getElementById('duanniSummary');if(!s)return;
   s.innerHTML=`<div class="bubble bubble-pink"><div class="bubble-label">Total</div><div class="bubble-value">${formatMoney(grand)}</div></div>
     <div class="bubble bubble-purple"><div class="bubble-label">Cartão</div><div class="bubble-value">${formatMoney(cartaoT)}</div><div class="bubble-sub">${cardDet}</div></div>
-    <div class="bubble bubble-green"><div class="bubble-label">Separado</div><div class="bubble-value">${formatMoney(aptoT+pTotal)}</div><div class="bubble-sub">${separadoDet}</div></div>
-    <div class="bubble ${saldoLivre>=0?'bubble-orange':'bubble-orange'}"><div class="bubble-label">Saldo Livre</div><div class="bubble-value" style="color:${saldoLivre>=0?'var(--success)':'var(--danger)'}">${formatMoney(Math.abs(saldoLivre))}</div><div class="bubble-sub">${saldoLivre<0?'Faltando':''}</div></div>`;
+    <div class="bubble bubble-orange"><div class="bubble-label">Separado</div><div class="bubble-value">${formatMoney(aptoT+pTotal)}</div><div class="bubble-sub">${separadoDet}</div></div>
+    <div class="bubble ${saldoLivre>=0?'bubble-green':'bubble-orange'}"><div class="bubble-label">Saldo Livre</div><div class="bubble-value" style="color:${saldoLivre>=0?'var(--success)':'var(--danger)'}">${formatMoney(Math.abs(saldoLivre))}</div><div class="bubble-sub">${saldoLivre<0?'Faltando':''}</div></div>`;
   const list=document.getElementById('duanniPersonalList'),empty=document.getElementById('duanniPersonalEmpty');
   if(!pExps.length){list.innerHTML='';empty.classList.remove('hidden');return;}
   empty.classList.add('hidden');
@@ -1351,7 +1354,7 @@ function renderDuanniInicio(){
     <div class="ei-icon cat-${e.categoria||'outros'}">${getCategoryIcon(e.categoria)}</div>
     <div class="ei-info"><div class="ei-name">${e.descricao}${devo?' <span style="font-size:10px;color:#e84393;">💕</span>':''}</div><div class="ei-detail">${capitalize(e.categoria||'')}${parcLabel} · Dia ${e.dia||'-'} · ${e.banco||''}</div></div>
     <div class="ei-value">${formatMoney(getMonthValue(e))}</div>
-    <div class="ei-actions"><button class="btn-icon ${paid?'btn-success':''}" onclick="togglePersonalStatus('${e.id}')">${paid?'✓':'○'}</button><button class="btn-icon" onclick="openPersonalExpenseModal('duanni','${e.id}')">✎</button><button class="btn-icon" onclick="deletePersonalExpense('${e.id}')" style="color:var(--danger)">✕</button></div>
+    <div class="ei-actions"><button class="btn-icon ${paid?'btn-success':''}" onclick="togglePersonalStatus('${e.id}')">${paid?'✓':'○'}</button><button class="btn-icon" onclick="openPersonalExpenseModal('duanni','${e.id}')">✎</button></div>
   </div>`;}).join('');
 }
 
