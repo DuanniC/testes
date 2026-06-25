@@ -342,9 +342,11 @@ tbody tr:last-child td { border-bottom:none; }
   .modal .modal-header h3 { font-size:17px; }
   .modal-close { width:34px; height:34px; font-size:17px; }
   /* Evitar que qualquer conteúdo interno cause scroll horizontal */
-  .modal * { max-width:100%; box-sizing:border-box; min-width:0; }
-  .modal input, .modal select, .modal textarea { width:100% !important; max-width:100% !important; box-sizing:border-box !important; }
+  .modal * { max-width:100%; box-sizing:border-box; }
+  .modal input:not([type="checkbox"]):not([type="radio"]), .modal select, .modal textarea { width:100% !important; max-width:100% !important; min-width:0 !important; box-sizing:border-box !important; }
   .modal input[type="month"] { font-size:12.5px !important; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; padding-right:8px !important; }
+  .modal input[type="checkbox"], .modal input[type="radio"] { width:16px !important; height:16px !important; min-width:16px !important; flex-shrink:0; }
+  #peDevoGroup label { display:flex; align-items:center; gap:8px; flex-wrap:nowrap; white-space:normal; word-break:break-word; }
   .bubble .bubble-value { font-size:19px; }
   .hide-mobile { display:none !important; }
   .show-mobile-only { display:block !important; }
@@ -2382,5 +2384,3 @@ async function updateSenha(key){const inputId=key==='senha'?'newSenha':'newSenha
 
 setTimeout(bindMetaEmojiInput,0);
 </script>
-</body>
-</html>
