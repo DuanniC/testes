@@ -50,7 +50,7 @@
   --font-display: 'Outfit', system-ui, sans-serif;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family: var(--font); background: var(--bg); color: var(--text); min-height:100vh; -webkit-tap-highlight-color:transparent; font-feature-settings: "ss01","cv11"; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height:100vh; -webkit-tap-highlight-color:transparent; font-feature-settings: "ss01","cv11"; overflow-x:hidden; }
 body::before { content:""; position:fixed; inset:0; background:
   radial-gradient(circle at 12% 8%, rgba(201,123,156,0.10), transparent 38%),
   radial-gradient(circle at 88% 92%, rgba(184,155,191,0.10), transparent 42%),
@@ -102,7 +102,7 @@ body::before { content:""; position:fixed; inset:0; background:
 .credit-card.active { outline:none; box-shadow:0 18px 38px rgba(201,123,156,0.25), 0 4px 10px rgba(93,73,84,0.08); }
 .credit-card::before { content:""; position:absolute; inset:0; border-radius:inherit; background:radial-gradient(circle at 18% 12%, rgba(255,255,255,0.4), transparent 28%), linear-gradient(135deg, rgba(255,255,255,0.20), transparent 45%); pointer-events:none; z-index:1; }
 .credit-card > * { position:relative; z-index:2; }
-.credit-card.active::after { content:""; position:absolute; inset:0; border:2.5px solid #fff; border-radius:inherit; pointer-events:none; z-index:5; box-shadow:inset 0 0 0 2px var(--accent); }
+.credit-card.active::after { content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:5; box-shadow:inset 0 0 0 2px var(--accent); }
 .credit-card .cc-pattern { position:absolute; top:0; left:0; right:0; bottom:0; opacity:0.12; background:repeating-linear-gradient(45deg, transparent, transparent 22px, rgba(255,255,255,0.1) 22px, rgba(255,255,255,0.1) 44px); pointer-events:none; }
 .credit-card .cc-chip { width:38px; height:28px; background:rgba(255,255,255,0.32); border-radius:6px; margin-bottom:16px; }
 .credit-card .cc-number { font-size:12px; letter-spacing:2.5px; opacity:0.82; margin-bottom:6px; font-family:var(--font-display); }
@@ -194,7 +194,7 @@ tbody tr:last-child td { border-bottom:none; }
 .chip:hover:not(.active) { border-color:var(--accent); color:var(--accent-deep); }
 
 /* ===== MODAL ===== */
-.modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(58,45,51,0.40); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:500; display:none; align-items:center; justify-content:center; padding:20px; }
+.modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(58,45,51,0.40); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); z-index:500; display:none; align-items:center; justify-content:center; padding:20px; overflow:hidden; }
 .modal-overlay.open { display:flex; }
 .modal { background:var(--card-bg); border-radius:24px; padding:28px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-lg); animation:modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1); border:1px solid var(--border-soft); }
 @keyframes modalIn { from{opacity:0;transform:scale(0.92)translateY(20px)} to{opacity:1;transform:none} }
@@ -315,8 +315,28 @@ tbody tr:last-child td { border-bottom:none; }
   table { font-size:12px; }
   thead th { padding:8px 8px; font-size:9.5px; }
   tbody td { padding:10px 8px; }
-  .modal-overlay { padding:12px; }
-  .modal { padding:20px; max-width:100%; border-radius:20px; margin:0; }
+  .modal-overlay { padding:0; align-items:flex-end; }
+  .modal {
+    padding:22px 18px;
+    padding-bottom:calc(22px + env(safe-area-inset-bottom));
+    max-width:100%;
+    width:100%;
+    border-radius:24px 24px 0 0;
+    margin:0;
+    max-height:92vh;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    animation:modalSlideUp 0.3s cubic-bezier(0.34,1.2,0.64,1);
+  }
+  @keyframes modalSlideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .modal .form-row-2 { grid-template-columns:1fr; gap:0; }
+  .modal .form-row-3 { grid-template-columns:1fr; gap:0; }
+  .modal .form-group { margin-bottom:12px; }
+  .modal .modal-header { margin-bottom:16px; }
+  .modal .modal-header h3 { font-size:17px; }
+  .modal-close { width:34px; height:34px; font-size:17px; }
+  /* Evitar que qualquer conteúdo interno cause scroll horizontal */
+  .modal * { max-width:100%; box-sizing:border-box; }
   .bubble .bubble-value { font-size:19px; }
   .hide-mobile { display:none !important; }
   .show-mobile-only { display:block !important; }
@@ -362,7 +382,7 @@ tbody tr:last-child td { border-bottom:none; }
 </div>
 
 <!-- PERSONAL PAGE (full overlay with rosy background) -->
-<div id="personalPage" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,#faf5f0 0%,#f4d9d9 50%,#e8c4d4 100%);z-index:800;display:flex;flex-direction:column;overflow-y:auto;">
+<div id="personalPage" class="hidden" style="position:fixed;top:0;left:0;right:0;bottom:0;background:#eef0fb;z-index:800;display:flex;flex-direction:column;overflow-y:auto;">
   <div style="display:flex;align-items:center;padding:16px 20px;background:rgba(255,255,255,0.8);backdrop-filter:blur(8px);border-bottom:1px solid rgba(232,67,147,0.2);position:sticky;top:0;z-index:10;">
     <div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#e84393,#fd79a8);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;margin-right:10px;">F</div>
     <span style="font-family:var(--font-display);font-weight:700;font-size:17px;color:#c2185b;">Pessoal</span>
@@ -1998,8 +2018,54 @@ function renderApto(){
   document.getElementById('aluguelValor').value=(DATA.aluguel||{}).valor||'';
   document.getElementById('aluguelOp').value=(DATA.aluguel||{}).op||'soma';
   const descontos=DATA.aluguelDescontos||[];
-  const activeDescontos=descontos.filter(d=>isDescontoInMonth(d,currentMonth));
-  document.getElementById('aluguelDescontos').innerHTML=!descontos.length?'<p style="color:var(--text-secondary);font-size:12px;">Nenhum</p>':descontos.map(d=>{const active=isDescontoInMonth(d,currentMonth);return`<div class="apto-item" style="${active?'':'opacity:0.5'}"><div><strong>${d.descricao||''}</strong> <span class="badge ${d.op==='subtrai'?'badge-paid':'badge-pending'}">${d.op==='subtrai'?'Desconto':'Acréscimo'}</span><div style="font-size:10px;color:var(--text-secondary);">Início: ${d.mesInicio||'—'} · ${d.parcelas?d.parcelas+'x':'Sem fim'}</div></div><div style="display:flex;align-items:center;gap:4px;"><strong>${formatMoney(d.valor)}</strong><button class="btn-icon" onclick="openDescontoModal('${d.id}')">✎</button><button class="btn-icon" onclick="deleteDesconto('${d.id}')" style="color:var(--danger)">✕</button></div></div>`;}).join('');
+  const aluguelBase=(DATA.aluguel||{}).valor||0;
+  const aluguelOp=(DATA.aluguel||{}).op||'soma';
+  const aluguelSinal=aluguelOp==='subtrai'?-1:1;
+  const aluguelLiquido=getAluguelForMonth(currentMonth);
+
+  // Monta conta visual
+  const monthNames=['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  function fimParcela(mesInicio,parcelas){
+    if(!parcelas||parcelas===0)return null;
+    const[sy,sm]=mesInicio.split('-').map(Number);
+    const d=new Date(sy,sm-1+parcelas-1,1);
+    return `${monthNames[d.getMonth()]}/${d.getFullYear()}`;
+  }
+
+  let contaHtml=`<div style="background:var(--bg-soft);border:1px solid var(--border-soft);border-radius:14px;padding:14px 16px;margin-bottom:14px;">`;
+  contaHtml+=`<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border-soft);margin-bottom:10px;">
+    <span style="font-size:13px;font-weight:700;">Aluguel base</span>
+    <span style="font-size:14px;font-weight:800;color:var(--text);">${formatMoney(aluguelBase)}</span>
+  </div>`;
+
+  if(descontos.length){
+    descontos.forEach(d=>{
+      const active=isDescontoInMonth(d,currentMonth);
+      const sinal=d.op==='subtrai'?'−':'+';
+      const cor=d.op==='subtrai'?'var(--danger)':'var(--success)';
+      const fim=fimParcela(d.mesInicio,d.parcelas);
+      const parcelaLabel=d.parcelas?`${d.parcelas}x${fim?' · até '+fim:''}`:' Sem fim';
+      contaHtml+=`<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--border-soft);opacity:${active?'1':'0.45'};">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:600;">${d.descricao||''} <span style="font-size:10px;font-weight:500;color:${d.op==='subtrai'?'var(--danger)':'var(--success)'};">${d.op==='subtrai'?'Desconto':'Acréscimo'}</span></div>
+          <div style="font-size:10px;color:var(--text-secondary);">Início: ${d.mesInicio||'—'} · ${parcelaLabel}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:4px;margin-left:8px;">
+          <span style="font-size:13px;font-weight:700;color:${cor};">${sinal} ${formatMoney(d.valor)}</span>
+          <button class="btn-icon" onclick="openDescontoModal('${d.id}')">✎</button>
+          <button class="btn-icon" onclick="deleteDesconto('${d.id}')" style="color:var(--danger)">✕</button>
+        </div>
+      </div>`;
+    });
+  }
+
+  contaHtml+=`<div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;margin-top:4px;">
+    <span style="font-size:12px;font-weight:700;color:var(--text-secondary);">TOTAL A RECEBER</span>
+    <span style="font-size:18px;font-weight:800;color:${aluguelLiquido>=0?'var(--success)':'var(--danger)'};">${formatMoney(Math.abs(aluguelLiquido))}</span>
+  </div>`;
+  contaHtml+=`</div>`;
+
+  document.getElementById('aluguelDescontos').innerHTML=contaHtml+(descontos.length===0?'<p style="color:var(--text-secondary);font-size:12px;margin-top:4px;">Nenhum desconto ou acréscimo</p>':'');
 
   // Extras tab
   const extras=getAptoItems(currentMonth).filter(i=>i.tipo==='extra');
