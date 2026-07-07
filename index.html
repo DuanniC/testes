@@ -10578,7 +10578,7 @@ async function saveEditSequence(i) {
     const newName = input.value.trim();
 
     if (!newName) { alert("O nome não pode ficar vazio ✦"); return; }
-    if (newName.toLowerCase() === s.name.toLowerCase()) { renderSequencesList(); return; }
+    if (newName === s.name) { renderSequencesList(); return; }
 
     // Encontra todos os livros dessa sequência (mesmo tipo + mesmo nome) e renomeia
     const affected = (state.books || []).filter(book => {
