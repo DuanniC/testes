@@ -10541,15 +10541,15 @@ function renderSequencesList() {
 
 function openEditSequence(i) {
   const s = window._seqGroupsCache && window._seqGroupsCache[i];
-  if (!s) return;
+  if (!s) { alert("Não achei essa sequência (tenta fechar e abrir Configurações de novo) ✦"); return; }
   const item = document.getElementById(`sqli-${i}`);
-  if (!item) return;
+  if (!item) { alert("Erro interno: item da lista não encontrado ✦"); return; }
 
   item.innerHTML = `
     <div style="display:flex; gap:8px; flex:1; flex-wrap:wrap; align-items:flex-end;">
       <div style="flex:1; min-width:140px;">
         <div style="font-size:11px; color:var(--ink-soft); margin-bottom:3px;">Nome da sequência (${SEQUENCE_TYPE_LABELS[s.type] || s.type})</div>
-        <input type="text" value="${escapeHtml(s.name)}" id="sqi-name-${i}"
+        <input type="text" value="${escapeHtml(s.name).replace(/"/g, '&quot;')}" id="sqi-name-${i}"
           style="width:100%; padding:6px 10px; border:1.5px solid var(--cream-dark); border-radius:8px; background:var(--cream); font-family:inherit; font-size:14px;">
       </div>
       <div style="display:flex; gap:6px; margin-top:4px;">
@@ -10562,33 +10562,49 @@ function openEditSequence(i) {
   if (input) {
     input.focus();
     input.select();
+    input.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") { ev.preventDefault(); saveEditSequence(i); }
+      if (ev.key === "Escape") { ev.preventDefault(); renderSequencesList(); }
+    });
   }
 }
 
 async function saveEditSequence(i) {
-  const s = window._seqGroupsCache && window._seqGroupsCache[i];
-  if (!s) return;
-  const input = document.getElementById(`sqi-name-${i}`);
-  const newName = input ? input.value.trim() : '';
+  try {
+    const s = window._seqGroupsCache && window._seqGroupsCache[i];
+    if (!s) { alert("Não achei essa sequência (tenta fechar e abrir Configurações de novo) ✦"); return; }
+    const input = document.getElementById(`sqi-name-${i}`);
+    if (!input) { alert("Erro interno: campo de nome não encontrado ✦"); return; }
+    const newName = input.value.trim();
 
-  if (!newName) { alert("O nome não pode ficar vazio ✦"); return; }
-  if (newName.toLowerCase() === s.name.toLowerCase()) { renderSequencesList(); return; }
+    if (!newName) { alert("O nome não pode ficar vazio ✦"); return; }
+    if (newName.toLowerCase() === s.name.toLowerCase()) { renderSequencesList(); return; }
 
-  // Encontra todos os livros dessa sequência (mesmo tipo + mesmo nome) e renomeia
-  const affected = (state.books || []).filter(book => {
-    const type = String(book.seriesType || 'unico').toLowerCase();
-    const name = (book.seriesName || book.t || '').trim();
-    return type === s.type && name.toLowerCase() === s.name.toLowerCase();
-  });
+    // Encontra todos os livros dessa sequência (mesmo tipo + mesmo nome) e renomeia
+    const affected = (state.books || []).filter(book => {
+      const type = String(book.seriesType || 'unico').toLowerCase();
+      const name = (book.seriesName || book.t || '').trim();
+      return type === s.type && name.toLowerCase() === s.name.toLowerCase();
+    });
 
-  affected.forEach(book => { book.seriesName = newName; });
+    if (affected.length === 0) {
+      alert("Não encontrei nenhum livro nessa sequência pra atualizar ✦");
+      renderSequencesList();
+      return;
+    }
 
-  saveState();
-  renderSequencesList();
-  renderAll();
+    affected.forEach(book => { book.seriesName = newName; });
 
-  for (const book of affected) {
-    try { await pushBook(book); } catch (e) { console.error(e); }
+    saveState();
+    renderSequencesList();
+    renderAll();
+
+    for (const book of affected) {
+      try { await pushBook(book); } catch (e) { console.error("Erro ao sincronizar livro", book.id, e); }
+    }
+  } catch (err) {
+    console.error("Erro ao salvar sequência:", err);
+    alert("Deu erro ao salvar: " + (err && err.message ? err.message : err));
   }
 }
 
